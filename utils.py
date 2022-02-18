@@ -21,10 +21,3 @@ class Position:
 
 	def distance_to(self, other):
 		return np.sqrt((self.x - other.x) ** 2 + (self.y - other.y) ** 2)
-
-@dataclass
-class Extent:
-	min_x: float
-	max_x: float
-	min_y: float
-	max_y: float

@@ -1,7 +1,23 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Tuple, List, Callable
-from utils import CellType, Position, Extent
+from utils import CellType, Position
+from dataclasses import dataclass
+
+@dataclass
+class Extent:
+	min_x: float
+	max_x: float
+	min_y: float
+	max_y: float
+
+	@property
+	def width(self):
+		return self.max_x - self.min_x
+
+	@property
+	def height(self):
+		return self.max_y - self.min_y
 
 def get_cells(scenario: Callable[[Position], CellType], size: float, extent: Extent):
 	cells = []
