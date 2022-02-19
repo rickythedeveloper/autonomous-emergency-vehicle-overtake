@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Tuple, List, Callable
-from utils import CellType, Position
+from utils import CellType, Vector2
 from dataclasses import dataclass
 
 @dataclass
@@ -19,12 +19,12 @@ class Extent:
 	def height(self):
 		return self.max_y - self.min_y
 
-def get_cells(scenario: Callable[[Position], CellType], size: float, extent: Extent):
+def get_cells(scenario: Callable[[Vector2], CellType], size: float, extent: Extent):
 	cells = []
 	for y in np.arange(extent.min_y, extent.max_y, size):
 		row_cells = []
 		for x in np.arange(extent.min_x, extent.max_x, size):
-			cell_type = scenario(Position(x, y))
+			cell_type = scenario(Vector2(x, y))
 			row_cells.append(cell_type)
 		cells.append(row_cells)
 	return cells
@@ -47,7 +47,7 @@ def cells_to_colors(cells: List[List[CellType]]) -> List[List[Color]]:
 		colors.append(colors_row)
 	return colors
 
-def visualise_scenario(scenario: Callable[[Position], CellType], cell_size: float, extent: Extent):
+def visualise_scenario(scenario: Callable[[Vector2], CellType], cell_size: float, extent: Extent):
 	cells = get_cells(scenario, cell_size, extent)
 	colors = cells_to_colors(cells)
 	plt.imshow(colors, origin='lower', extent=(extent.min_x, extent.max_x, extent.min_y, extent.max_y))
