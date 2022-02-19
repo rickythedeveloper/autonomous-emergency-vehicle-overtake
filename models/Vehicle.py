@@ -12,14 +12,14 @@ class VehicleType(Enum):
 class Vehicle(ABC):
 	_vehicle_type: VehicleType
 	_position: Vector2
-	velocity: Vector2
+	_velocity: Vector2
 	_other_vehicles: List[Vehicle]
 	_heading: float # between 0 and 2pi with 0 being positive y direction, pi / 2 positive x direction
 
 	def __init__(self, vehicle_type: VehicleType, position: Vector2, velocity: Vector2, heading: float = 0):
 		self._vehicle_type = vehicle_type
 		self._position = position
-		self.velocity = velocity
+		self._velocity = velocity
 		self._other_vehicles = []
 		self._heading = heading
 
@@ -30,13 +30,16 @@ class Vehicle(ABC):
 	def position(self): return self._position
 
 	@property
+	def velocity(self): return self._velocity
+
+	@property
 	def heading(self): return self._heading
 
 	@heading.setter
 	def heading(self, value: float): self._heading = value % (2 * np.pi)
 
 	def _roll_forward(self, dt: float):
-		self._position += self.velocity * dt
+		self._position += self._velocity * dt
 
 	def add_vehicle(self, vehicle: Vehicle):
 		assert self is not vehicle

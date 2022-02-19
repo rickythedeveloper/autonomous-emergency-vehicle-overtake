@@ -20,8 +20,7 @@ def main():
 	for i in range(int(total_time / dt)):
 		for v in simulator.vehicles:
 			v._heading += 0.1
-			if i % 5 == 0:
-				v.update_velocity()
+			v.update_velocity()
 
 		simulator.roll_forward(dt)
 		t += dt
