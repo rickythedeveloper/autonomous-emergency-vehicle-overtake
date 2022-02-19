@@ -1,5 +1,5 @@
 from __future__ import annotations # allows referencing Vector2 from inside Vector2. Will be unnecessary in the future
-from typing import List
+from typing import List, Callable
 from enum import Enum
 from abc import ABC, abstractmethod
 import numpy as np
@@ -9,11 +9,12 @@ class VehicleType(Enum):
 	civilian = 0
 	emergency = 1
 
-class Vehicle(ABC):
+class ContinuousVehicle(ABC):
 	_vehicle_type: VehicleType
 	_position: Vector2
 	_velocity: Vector2
-	_other_vehicles: List[Vehicle]
+	_other_vehicles: List[ContinuousVehicle]
+	_position_is_obstacle: Callable[[Vector2], bool]
 	_heading: float # between 0 and 2pi with 0 being positive y direction, pi / 2 positive x direction
 
 	def __init__(self, vehicle_type: VehicleType, position: Vector2, velocity: Vector2, heading: float = 0):
@@ -41,13 +42,13 @@ class Vehicle(ABC):
 	def _roll_forward(self, dt: float):
 		self._position += self._velocity * dt
 
-	def add_vehicle(self, vehicle: Vehicle):
+	def add_vehicle(self, vehicle: ContinuousVehicle):
 		assert self is not vehicle
 		for v in self._other_vehicles:
 			assert v is not vehicle
 		self._other_vehicles.append(vehicle)
 
-	def remove_vehicle(self, vehicle: Vehicle):
+	def remove_vehicle(self, vehicle: ContinuousVehicle):
 		remove_index: None | int = None
 		for index, v in enumerate(self._other_vehicles):
 			if v is vehicle:

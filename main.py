@@ -1,18 +1,22 @@
 from utils import Vector2
-from models.Simulator import Simulator
-from models.vehicles import CivilianVehicle, EmergencyVehicle
+from models.continuous.ContinuousSimulator import ContinuousSimulator
+from models.continuous.vehicles import CivilianVehicle, EmergencyVehicle
 from visualise import visualise_scenario, CellType, Extent
 
 def main():
 	civilian = CivilianVehicle(Vector2(0, 0), Vector2(0, 0))
 	emergency = EmergencyVehicle(Vector2(0, 4), Vector2(0, 0))
 
+	def position_is_obstacle(position: Vector2) -> bool:
+		return -3 < position.y < -2 or 6 < position.y < 7
+
 	def position_to_cell_type(position: Vector2) -> CellType:
+		if position_is_obstacle(position): return CellType.obstacle
 		if civilian.contains(position): return CellType.civilian
 		if emergency.contains(position): return CellType.emergency
 		return CellType.road
 
-	simulator = Simulator([civilian, emergency])
+	simulator = ContinuousSimulator(position_is_obstacle, [civilian, emergency])
 
 	dt = 0.5
 	total_time = 5

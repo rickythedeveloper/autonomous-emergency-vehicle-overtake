@@ -1,8 +1,8 @@
 import numpy as np
-from models.Vehicle import Vehicle, VehicleType
+from models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
 from utils import Vector2
 
-class CivilianVehicle(Vehicle):
+class CivilianVehicle(ContinuousVehicle):
 	_width = 2
 	_length = 3
 
@@ -38,7 +38,7 @@ class CivilianVehicle(Vehicle):
 		x_rel, y_rel = relative_position_vehicle_frame.x, relative_position_vehicle_frame.y
 		return -self._width / 2 < x_rel < self._width / 2 and -self._length / 2 < y_rel < self._length / 2
 
-class EmergencyVehicle(Vehicle):
+class EmergencyVehicle(ContinuousVehicle):
 	_width = 2
 	_length = 3
 
