@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from models.discrete.utils import DiscretePosition, DiscreteVehicleType, Grid
+from .utils import DiscretePosition, DiscreteVehicleType, Grid
 
 class DiscreteVehicle(ABC):
 	_vehicle_type: DiscreteVehicleType
@@ -18,7 +18,7 @@ class DiscreteVehicle(ABC):
 
 	def is_in_grid(self):
 		if self.position[0] < 0 or self.position[1] < 0: return False
-		if self.position[0] >= len(self.grid) or self.position[1] >= len(self.grid[0]): return False
+		if self.position[1] >= len(self.grid) or self.position[0] >= len(self.grid[0]): return False
 		return True
 
 	@abstractmethod

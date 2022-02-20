@@ -1,9 +1,9 @@
-from __future__ import annotations # allows referencing Vector2 from inside Vector2. Will be unnecessary in the future
+from __future__ import annotations
 from typing import List, Callable
 from enum import Enum
 from abc import ABC, abstractmethod
 import numpy as np
-from utils import Vector2
+from ...utils.Vector2 import Vector2
 
 class VehicleType(Enum):
 	civilian = 0

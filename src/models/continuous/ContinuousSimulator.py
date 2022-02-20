@@ -1,6 +1,6 @@
 from typing import List, Callable
-from models.continuous.ContinuousVehicle import ContinuousVehicle
-from utils import Vector2
+from .ContinuousVehicle import ContinuousVehicle
+from ...utils.Vector2 import Vector2
 
 class ContinuousSimulator:
 	vehicles: List[ContinuousVehicle]

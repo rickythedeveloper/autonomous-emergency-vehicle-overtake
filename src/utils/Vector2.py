@@ -1,13 +1,6 @@
 from __future__ import annotations # allows referencing Vector2 from inside Vector2
 import numpy as np
-from enum import Enum
 from dataclasses import dataclass
-
-class CellType(Enum):
-	road = 0
-	civilian = 1
-	emergency = 2
-	obstacle = 3
 
 @dataclass
 class Vector2:

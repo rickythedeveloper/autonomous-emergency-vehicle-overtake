@@ -1,7 +1,7 @@
 import copy
 from typing import List
-from models.discrete.DiscreteVehicle import DiscreteVehicle
-from models.discrete.utils import CellType, DiscreteVehicleType, Grid, DiscretePosition
+from .DiscreteVehicle import DiscreteVehicle
+from .utils import DiscreteSimulationCellType, DiscreteVehicleType, Grid, DiscretePosition
 
 class DiscreteSimulator:
 	vehicles: List[DiscreteVehicle]
@@ -14,12 +14,11 @@ class DiscreteSimulator:
 		if vehicles is not None:
 			for v in vehicles:
 				self.add_vehicle(v)
-				v.grid = self.grid
 		self.update_grid()
 
 	def add_vehicle(self, vehicle: DiscreteVehicle):
 		self.vehicles.append(vehicle)
-		vehicle._obstacle_positions = self.grid
+		vehicle.grid = self.grid
 
 	def remove_vehicle(self, vehicle: DiscreteVehicle):
 		delete_index: None | int = None
@@ -31,17 +30,20 @@ class DiscreteSimulator:
 
 	def update_grid(self):
 		# reset any vehicles to road
-		for i, row in enumerate(self.grid):
-			for j, cell in enumerate(row):
-				if cell == CellType.emergency or cell == CellType.civilian:
-					self.grid[i][j] = CellType.road
+		for j, row in enumerate(self.grid):
+			for i, cell in enumerate(row):
+				if cell == DiscreteSimulationCellType.emergency or cell == DiscreteSimulationCellType.civilian:
+					self.grid[j][i] = DiscreteSimulationCellType.road
 
 		# put vehicles on the grid
 		for v in self.vehicles:
 			if not v.is_in_grid(): continue
 			i, j = v.position
-			assert self.grid[i][j] != CellType.emergency and self.grid[i][j] != CellType.civilian # no collisions
-			self.grid[i][j] = CellType.civilian if v.vehicle_type == DiscreteVehicleType.civilian else CellType.emergency
+			assert self.grid[j][i] != DiscreteSimulationCellType.emergency # no collisions
+			assert self.grid[j][i] != DiscreteSimulationCellType.civilian # no collisions
+			self.grid[j][i] = \
+				DiscreteSimulationCellType.civilian if v.vehicle_type == DiscreteVehicleType.civilian \
+				else DiscreteSimulationCellType.emergency
 
 	def roll_forward(self):
 		for vehicle in self.vehicles:
@@ -50,5 +52,5 @@ class DiscreteSimulator:
 
 	def position_is_in_grid(self, position: DiscretePosition):
 		if position[0] < 0 or position[1] < 0: return False
-		if position[0] >= len(self.grid) or position[1] >= len(self.grid[0]): return False
+		if position[1] >= len(self.grid) or position[0] >= len(self.grid[0]): return False
 		return True

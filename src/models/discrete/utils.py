@@ -3,7 +3,7 @@ from enum import Enum
 
 DiscretePosition = Tuple[int, int]
 
-class CellType(Enum):
+class DiscreteSimulationCellType(Enum):
 	civilian = 0
 	emergency = 1
 	obstacle = 2
@@ -13,4 +13,4 @@ class DiscreteVehicleType(Enum):
 	civilian = 0
 	emergency = 1
 
-Grid = List[List[CellType]]
+Grid = List[List[DiscreteSimulationCellType]]
