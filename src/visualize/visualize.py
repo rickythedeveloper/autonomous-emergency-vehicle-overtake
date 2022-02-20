@@ -1,9 +1,15 @@
-import matplotlib.pyplot as plt
 from typing import Tuple, List, Callable
 from dataclasses import dataclass
+from enum import Enum
+import matplotlib.pyplot as plt
 import numpy as np
-from .utils import VisualisationCellType
 from ..utils.Vector2 import Vector2
+
+class VisualisationCellType(Enum):
+	road = 0
+	civilian = 1
+	emergency = 2
+	obstacle = 3
 
 @dataclass
 class Extent:
@@ -20,12 +26,12 @@ class Extent:
 	def height(self):
 		return self.max_y - self.min_y
 
-def get_cells(scenario: Callable[[Vector2], VisualisationCellType], size: float, extent: Extent):
+def get_cells(cell_type_for_position: Callable[[Vector2], VisualisationCellType], size: float, extent: Extent):
 	cells = []
 	for y in np.arange(extent.min_y, extent.max_y, size):
 		row_cells = []
 		for x in np.arange(extent.min_x, extent.max_x, size):
-			cell_type = scenario(Vector2(x, y))
+			cell_type = cell_type_for_position(Vector2(x, y))
 			row_cells.append(cell_type)
 		cells.append(row_cells)
 	return cells
