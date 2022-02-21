@@ -54,8 +54,12 @@ def cells_to_colors(cells: List[List[VisualisationCellType]]) -> List[List[Color
 		colors.append(colors_row)
 	return colors
 
-def visualise_scenario(scenario: Callable[[Vector2], VisualisationCellType], cell_size: float, extent: Extent):
-	cells = get_cells(scenario, cell_size, extent)
+def visualize_result(
+	get_visualization_cell_type: Callable[[Vector2], VisualisationCellType],
+	cell_size: float,
+	extent: Extent
+):
+	cells = get_cells(get_visualization_cell_type, cell_size, extent)
 	colors = cells_to_colors(cells)
 	plt.imshow(colors, origin='lower', extent=(extent.min_x, extent.max_x, extent.min_y, extent.max_y))
 	plt.show()

@@ -1,5 +1,5 @@
-from ..models.discrete.DiscreteVehicle import DiscreteVehicle
-from ..models.discrete.utils import DiscretePosition, DiscreteVehicleType
+from ...models.discrete.DiscreteVehicle import DiscreteVehicle
+from ...models.discrete.utils import DiscretePosition, DiscreteVehicleType
 
 class DiscreteCivilianVehicle(DiscreteVehicle):
 	def __init__(self, position: DiscretePosition):

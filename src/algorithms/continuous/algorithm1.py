@@ -1,5 +1,5 @@
-from ..models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
-from ..utils.Vector2 import Vector2
+from ...models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
+from ...utils.Vector2 import Vector2
 
 class ContinuousCivilianVehicle(ContinuousVehicle):
 	_width = 2
