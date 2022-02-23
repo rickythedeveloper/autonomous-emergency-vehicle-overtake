@@ -4,31 +4,29 @@ from ...models.discrete.DiscreteVehicle import DiscreteVehicle
 from ...models.discrete.utils import DiscretePosition, DiscreteVehicleType, Grid, DiscreteSimulationCellType
 from .utils import possible_moves, is_road, is_goal, get_next_position
 
-@dataclass
-class StartingConfiguration:
-	start: DiscretePosition
-	history: List[DiscretePosition]
+History = List[DiscretePosition]
 
 def solve_maze(
 	grid: Grid,
 	current_position: DiscretePosition,
 ) -> List[DiscretePosition] | None:
-	configurations_to_explore: List[StartingConfiguration] = []
+	configurations_to_explore: List[History] = []
 
 	for move in possible_moves:
 		proposal = get_next_position(current_position, move)
 		if is_goal(proposal, grid): return [proposal]
 		if is_road(proposal, grid):
-			configurations_to_explore.append(StartingConfiguration(proposal, [current_position]))
+			history = [current_position, proposal]
+			configurations_to_explore.append(history)
 
 	while len(configurations_to_explore) > 0:
-		config = configurations_to_explore[0]
+		history = configurations_to_explore[0] # always examine the first one
 
 		for move in possible_moves:
-			proposal = get_next_position(config.start, move)
-			if is_goal(proposal, grid): return [*config.history[1:], proposal]
+			proposal = get_next_position(history[-1], move)
+			if is_goal(proposal, grid): return [*history[1:], proposal]
 			if is_road(proposal, grid):
-				configurations_to_explore.append(StartingConfiguration(proposal, [*config.history, config.start]))
+				configurations_to_explore.append([*history, proposal])
 
 		del configurations_to_explore[0]
 	return None
