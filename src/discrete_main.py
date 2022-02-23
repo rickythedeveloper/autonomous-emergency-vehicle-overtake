@@ -3,7 +3,7 @@ from typing import List
 
 # imports for simulation
 from .models.discrete.DiscreteSimulator import DiscreteSimulator
-from .algorithms.discrete.depth_first import DiscreteCivilianVehicle, DiscreteEmergencyVehicle
+from .algorithms.discrete.breadth_first import DiscreteCivilianVehicle, DiscreteEmergencyVehicle
 from .models.discrete.utils import DiscreteSimulationCellType, Grid
 from .scenarios.discrete.scenario1 import scenario, width as scenario_width, height as scenario_height
 
