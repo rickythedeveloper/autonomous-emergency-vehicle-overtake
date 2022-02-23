@@ -38,7 +38,7 @@ class DiscreteSimulator:
 		# put vehicles on the grid
 		for v in self.vehicles:
 			if not v.is_in_grid(): continue
-			i, j = v.position
+			i, j = v.position.x, v.position.y
 			assert self.grid[j][i] != DiscreteSimulationCellType.emergency # no collisions
 			assert self.grid[j][i] != DiscreteSimulationCellType.civilian # no collisions
 			self.grid[j][i] = \
@@ -51,6 +51,6 @@ class DiscreteSimulator:
 		self.update_grid()
 
 	def position_is_in_grid(self, position: DiscretePosition):
-		if position[0] < 0 or position[1] < 0: return False
-		if position[1] >= len(self.grid) or position[0] >= len(self.grid[0]): return False
+		if position.x < 0 or position.y < 0: return False
+		if position.y >= len(self.grid) or position.x >= len(self.grid[0]): return False
 		return True

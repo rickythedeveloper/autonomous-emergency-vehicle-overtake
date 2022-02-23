@@ -17,8 +17,8 @@ class DiscreteVehicle(ABC):
 	def position(self): return self._position
 
 	def is_in_grid(self):
-		if self.position[0] < 0 or self.position[1] < 0: return False
-		if self.position[1] >= len(self.grid) or self.position[0] >= len(self.grid[0]): return False
+		if self.position.x < 0 or self.position.y < 0: return False
+		if self.position.y >= len(self.grid) or self.position.x >= len(self.grid[0]): return False
 		return True
 
 	@abstractmethod

@@ -10,6 +10,7 @@ class VisualisationCellType(Enum):
 	civilian = 1
 	emergency = 2
 	obstacle = 3
+	goal = 4
 
 @dataclass
 class Extent:
@@ -43,6 +44,7 @@ def cell_type_to_color(cell_type: VisualisationCellType) -> Color:
 	if cell_type == VisualisationCellType.civilian: return 150, 150, 150
 	if cell_type == VisualisationCellType.emergency: return 150, 0, 0
 	if cell_type == VisualisationCellType.obstacle: return 0, 0, 0
+	if cell_type == VisualisationCellType.goal: return 0, 150, 150
 	raise NotImplementedError
 
 def cells_to_colors(cells: List[List[VisualisationCellType]]) -> List[List[Color]]:
