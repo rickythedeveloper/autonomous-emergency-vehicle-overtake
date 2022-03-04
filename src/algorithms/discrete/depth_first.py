@@ -1,6 +1,6 @@
 from typing import List
 from ...models.discrete.DiscreteVehicle import DiscreteVehicle
-from ...models.discrete.utils import DiscretePosition, DiscreteVehicleType, Grid, DiscreteSimulationCellType
+from ...models.discrete.utils import DiscretePosition, DiscreteVehicleType, Grid
 from .utils import possible_moves, is_road, is_goal, get_next_position
 
 def solve_maze(
@@ -23,7 +23,7 @@ def solve_maze(
 				break
 		if has_been_there: continue
 
-		# if the proposal is road, try find a path from there
+		# if the proposal is road, try to find a path from there
 		if is_road(proposal, grid):
 			result = solve_maze(grid, proposal, [*history, current_position])
 			if result is not None:

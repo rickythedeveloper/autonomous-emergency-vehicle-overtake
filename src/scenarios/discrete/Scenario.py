@@ -1,11 +1,10 @@
 import copy
-from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List
 from ...models.discrete.DiscreteSimulator import DiscreteSimulationCellType, DiscretePosition
 
 class Scenario:
 	civilian_positions: List[DiscretePosition]
-	emergencie_positions: List[DiscretePosition]
+	emergency_positions: List[DiscretePosition]
 	grid: List[List[DiscreteSimulationCellType]]
 
 	def __init__(
@@ -32,5 +31,5 @@ class Scenario:
 		grid_copy.append([DiscreteSimulationCellType.obstacle for _ in range(original_width + 2)])
 
 		self.civilian_positions = civilians_copy
-		self.emergencie_positions = emergencies_copy
+		self.emergency_positions = emergencies_copy
 		self.grid = grid_copy

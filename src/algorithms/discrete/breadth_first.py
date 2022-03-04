@@ -1,7 +1,6 @@
 from typing import List
-from dataclasses import dataclass
 from ...models.discrete.DiscreteVehicle import DiscreteVehicle
-from ...models.discrete.utils import DiscretePosition, DiscreteVehicleType, Grid, DiscreteSimulationCellType
+from ...models.discrete.utils import DiscretePosition, DiscreteVehicleType, Grid
 from .utils import possible_moves, is_road, is_goal, get_next_position
 
 History = List[DiscretePosition]
