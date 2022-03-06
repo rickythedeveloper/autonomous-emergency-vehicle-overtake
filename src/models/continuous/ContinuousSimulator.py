@@ -68,17 +68,12 @@ class ContinuousSimulator:
 				while relative_heading < -np.pi: relative_heading += 2 * np.pi
 				while relative_heading > np.pi: relative_heading -= 2 * np.pi
 
-				def v2_contains(position_v1_frame: Vector2) -> bool:
-					world_position = v1.position_relative_to_world(position_v1_frame)
-					position_v2_frame = v2.position_world_to_relative(world_position)
-					return v2.object.contains(position_v2_frame)
-
 				v1.object.observed_vehicles.append(ObservedVehicle(
 					v2.object.vehicle_type,
 					relative_position,
 					relative_velocity,
 					relative_heading,
-					v2_contains
+					v2.object.contains
 				))
 
 			# update obstacle info

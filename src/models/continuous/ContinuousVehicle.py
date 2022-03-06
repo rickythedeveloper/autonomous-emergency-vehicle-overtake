@@ -25,7 +25,7 @@ class ObservedVehicle:
 	relative_position: Vector2
 	relative_velocity: Vector2
 	relative_heading: float # between -pi and pi
-	contains: Callable[[Vector2], bool] # whether the observed vehicle contains a point in this vehicle's frame
+	contains: Callable[[Vector2], bool] # copy of the contains function of the observed vehicle
 
 class ContinuousVehicle(ABC):
 	_vehicle_type: VehicleType
@@ -67,8 +67,10 @@ class ContinuousVehicle(ABC):
 			if self.position_is_obstacle(test_point): return True
 
 			# check for other vehicles
-			for observed_vehicle in self.observed_vehicles:
-				if observed_vehicle.contains(test_point): return True
+			for v in self.observed_vehicles:
+				rel_pos_this_frame = test_point - v.relative_position
+				rel_pos_other_frame = rel_pos_this_frame.rotated_clockwise(v.relative_heading)
+				if v.contains(rel_pos_other_frame): return True
 		return False
 
 	@abstractmethod
