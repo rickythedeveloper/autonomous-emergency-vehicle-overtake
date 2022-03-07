@@ -85,7 +85,8 @@ class ContinuousSimulator:
 
 		# compute velocity and position based on the new observed data
 		for vehicle in self.vehicles:
-			control = vehicle.object.compute_control()
+			vehicle.object.update_control()
+			control = vehicle.object.control
 			delta_distance = control.speed * dt
 			delta_heading = delta_distance / control.turn_radius * (1 if control.turn_direction == LateralDirection.right else -1)
 			average_heading = vehicle.heading + delta_heading / 2 # heading at halfway point
@@ -94,3 +95,5 @@ class ContinuousSimulator:
 			vehicle.velocity = Vector2(np.sin(average_heading), np.cos(average_heading)) * control.speed
 			vehicle.position += vehicle.velocity * dt
 			vehicle.heading += delta_heading
+
+			vehicle.object.roll_forward(dt)

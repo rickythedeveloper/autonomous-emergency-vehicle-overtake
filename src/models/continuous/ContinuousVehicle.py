@@ -31,6 +31,7 @@ class ContinuousVehicle(ABC):
 	_vehicle_type: VehicleType
 	observed_vehicles: List[ObservedVehicle] = []
 	position_is_obstacle: Callable[[Vector2], bool] # returns whether the given relative position is in an obstacle
+	control: Control
 
 	def __init__(self, vehicle_type: VehicleType):
 		self._vehicle_type = vehicle_type
@@ -82,7 +83,12 @@ class ContinuousVehicle(ABC):
 
 	# The following two methods will be used instead of compute_velocity when we incorporate the car dynamics.
 	@abstractmethod
-	def compute_control(self) -> Control:
-		"""This function should compute the speed at next time step"""
+	def update_control(self) -> None:
+		"""This function should update the control at next time step"""
+		raise NotImplementedError
+
+	@abstractmethod
+	def roll_forward(self, dt: float) -> None:
+		"""This function updates any internal vehicle data after the simulator rolls forward by dt seconds"""
 		raise NotImplementedError
 

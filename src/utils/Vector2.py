@@ -7,6 +7,10 @@ class Vector2:
 	x: float
 	y: float
 
+	@staticmethod
+	def from_heading(heading: float) -> Vector2:
+		return Vector2(np.sin(heading), np.cos(heading))
+
 	def __add__(self, other: Vector2):
 		if not isinstance(other, Vector2):
 			raise NotImplementedError
@@ -33,3 +37,16 @@ class Vector2:
 		x = self.x * cosine - self.y * sine
 		y = self.x * sine + self.y * cosine
 		return Vector2(x, y)
+
+	@property
+	def np_array(self) -> np.ndarray:
+		return np.array([self.x, self.y])
+
+	@property
+	def slope(self):
+		if np.abs(self.x) < 1e-5: return np.inf
+		return self.y / self.x
+
+	@property
+	def length(self):
+		return np.sqrt(self.x ** 2 + self.y ** 2)

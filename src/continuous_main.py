@@ -20,6 +20,12 @@ def get_visualization_cell_type(position: Vector2, vehicles: List[VehicleData]):
 		if v.object.contains(v.position_world_to_relative(position)):
 			if v.object.vehicle_type == VehicleType.emergency: return VisualisationCellType.emergency
 			if v.object.vehicle_type == VehicleType.civilian: return VisualisationCellType.civilian
+
+		if isinstance(v.object, ContinuousEmergencyVehicle):
+			for pose in v.object.future_poses:
+				pose_position = v.position_relative_to_world(pose.position)
+				if (position - pose_position).length < 1: return VisualisationCellType.emergency
+
 	return VisualisationCellType.road
 
 @dataclass
@@ -36,7 +42,7 @@ def continuous_main():
 	)
 
 	# simulate
-	dt, total_time = 2, 50 * np.pi / 2
+	dt, total_time = 0.5, 50
 	n_iter = int(total_time / dt)
 	t = 0
 	data: List[List[VehicleData]] = []
@@ -44,14 +50,14 @@ def continuous_main():
 		simulator.roll_forward(dt)
 		data.append(copy.deepcopy(simulator.vehicles))
 		t += dt
-		print(f'\rt={t}', end='')
+		# print(f'\rt={t}', end='')
 
 	# visualize
 	for snapshot in data:
 		visualize_result(
 			lambda x: get_visualization_cell_type(x, snapshot),
 			0.3,
-			Extent(-50, 50, -10, 50)
+			Extent(-20, 20, -10, 60)
 		)
 
 if __name__ == '__main__':
