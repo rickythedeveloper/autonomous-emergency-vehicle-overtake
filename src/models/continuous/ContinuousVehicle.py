@@ -62,15 +62,16 @@ class ContinuousVehicle(ABC):
 		:param relative_heading: relative heading at the proposed position
 		"""
 		for p in self.collision_test_points_local_frame:
-			test_point = relative_position + p.rotated_clockwise(-relative_heading)
+			test_point = relative_position + p.rotated_clockwise(relative_heading)
 
 			# check for obstacle
 			if self.position_is_obstacle(test_point): return True
 
 			# check for other vehicles
 			for v in self.observed_vehicles:
+				if (v.relative_position - relative_position).length > 10: continue # TODO constant
 				rel_pos_this_frame = test_point - v.relative_position
-				rel_pos_other_frame = rel_pos_this_frame.rotated_clockwise(v.relative_heading)
+				rel_pos_other_frame = rel_pos_this_frame.rotated_clockwise(-v.relative_heading)
 				if v.contains(rel_pos_other_frame): return True
 		return False
 

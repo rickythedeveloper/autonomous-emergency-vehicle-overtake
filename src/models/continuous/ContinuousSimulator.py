@@ -22,16 +22,16 @@ class VehicleData:
 		while self._heading > 2 * np.pi: self._heading -= 2 * np.pi
 
 	def position_relative_to_world(self, relative_position: Vector2):
-		return relative_position.rotated_clockwise(-self.heading) + self.position
+		return relative_position.rotated_clockwise(self.heading) + self.position
 
 	def position_world_to_relative(self, world_position: Vector2):
-		return (world_position - self.position).rotated_clockwise(self.heading)
+		return (world_position - self.position).rotated_clockwise(-self.heading)
 
 	def velocity_relative_to_world(self, relative_velocity: Vector2):
-		return relative_velocity.rotated_clockwise(-self.heading) + self.velocity
+		return relative_velocity.rotated_clockwise(self.heading) + self.velocity
 
 	def velocity_world_to_relative(self, world_velocity: Vector2):
-		return (world_velocity - self.velocity).rotated_clockwise(self.heading)
+		return (world_velocity - self.velocity).rotated_clockwise(-self.heading)
 
 class ContinuousSimulator:
 	vehicles: List[VehicleData]
@@ -76,9 +76,11 @@ class ContinuousSimulator:
 					v2.object.contains
 				))
 
+			def position_is_obstacle_v1_frame(position: Vector2):
+				return self.position_is_obstacle(v1.position_relative_to_world(position))
+
 			# update obstacle info
-			v1.object.position_is_obstacle = \
-				lambda rel_pos: self.position_is_obstacle(v1.position_relative_to_world(rel_pos))
+			v1.object.position_is_obstacle = position_is_obstacle_v1_frame
 
 	def roll_forward(self, dt: float):
 		self.update_observed_data()

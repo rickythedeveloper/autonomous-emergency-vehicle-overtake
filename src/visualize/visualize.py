@@ -1,6 +1,7 @@
 from typing import Tuple, List, Callable
 from dataclasses import dataclass
 from enum import Enum
+import os
 import matplotlib.pyplot as plt
 import numpy as np
 from ..utils.Vector2 import Vector2
@@ -59,12 +60,17 @@ def cells_to_colors(cells: List[List[VisualisationCellType]]) -> List[List[Color
 def visualize_result(
 	get_visualization_cell_type: Callable[[Vector2], VisualisationCellType],
 	cell_size: float,
-	extent: Extent
+	extent: Extent,
+	save_directory: str,
+	filename: str
 ):
 	cells = get_cells(get_visualization_cell_type, cell_size, extent)
 	colors = cells_to_colors(cells)
 	plt.imshow(colors, origin='lower', extent=(extent.min_x, extent.max_x, extent.min_y, extent.max_y))
-	plt.show()
+
+	os.makedirs(save_directory, exist_ok=True)
+	plt.savefig(os.path.join(save_directory, str(filename)))
+
 
 if __name__ == '__main__':
 	pass

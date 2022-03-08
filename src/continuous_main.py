@@ -1,6 +1,10 @@
 import copy
-from typing import List
+from typing import List, Callable, Tuple
 from dataclasses import dataclass
+from datetime import datetime
+import os
+
+import matplotlib.pyplot as plt
 import numpy as np
 
 # imports for simulation
@@ -46,19 +50,39 @@ def continuous_main():
 	n_iter = int(total_time / dt)
 	t = 0
 	data: List[List[VehicleData]] = []
+
+	# obstacle_maps: List[List[List[Tuple[float, float, float]]]] = []
 	for i in range(n_iter):
+		# print(i)
 		simulator.roll_forward(dt)
 		data.append(copy.deepcopy(simulator.vehicles))
+
+		# colors: List[List[Tuple[float, float, float]]] = []
+		# obstacle_maps.append(colors)
+		# for y in np.arange(-15, 15, 1):
+		# 	row: List[Tuple[float, float, float]] = []
+		# 	colors.append(row)
+		# 	for x in np.arange(-15, 15, 1):
+		# 		color: Tuple[float, float, float] = (200, 0, 0) if simulator.vehicles[-1].object.position_will_collide(Vector2(x, y), 0) else (0, 200, 0)
+		# 		row.append(color)
 		t += dt
 		# print(f'\rt={t}', end='')
-
+	print('simulation complete')
 	# visualize
-	for snapshot in data:
+	save_directory = os.path.join('images', datetime.now().strftime("%Y-%d-%m_%H-%M-%S"))
+	for index, snapshot in enumerate(data):
 		visualize_result(
 			lambda x: get_visualization_cell_type(x, snapshot),
 			0.3,
-			Extent(-20, 20, -10, 60)
+			Extent(-20, 20, -10, 60),
+			save_directory,
+			str(index)
 		)
+
+		# plt.imshow(obstacle_maps[index], origin='lower', extent=(-15, 15, -15, 15))
+		# obstacle_dir = os.path.join(save_directory, 'obstacle')
+		# os.makedirs(obstacle_dir, exist_ok=True)
+		# plt.savefig(os.path.join(obstacle_dir, str(index)))
 
 if __name__ == '__main__':
 	continuous_main()
