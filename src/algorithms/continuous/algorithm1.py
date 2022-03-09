@@ -9,12 +9,12 @@ from ...models.continuous.ContinuousVehicle import ContinuousVehicle, Control, L
 from ...utils.Vector2 import Vector2
 
 def weight_density_generator(position: Vector2, heading: float) -> Callable[[float], float]:
-	angle_range = np.pi / 3
+	angle_range = np.pi / 6
 
 	def weight_density(angle: float):
 		angle_modulo = angle % (2 * np.pi)
 		if angle_modulo < angle_range / 2 or angle_modulo > 2 * np.pi - angle_range / 2: return 1
-		return 0.05
+		return 0
 
 	return weight_density
 
