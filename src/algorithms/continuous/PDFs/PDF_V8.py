@@ -93,17 +93,17 @@ def probabilites_reorganise(input_list):
 	max_val = max(input_list)
 	normalised_list = []
 	for item in input_list:
-		normalised_list.append(item/max_val)
+		normalised_list.append(item / max_val)
 	inverted_list = []
 	for item in normalised_list:
-		inverted_list.append(1-item)
+		inverted_list.append(1 - item)
 	return inverted_list
 def split_probabilities(probabilities):
-	splitting_factor = int(360/len(probabilities))
+	splitting_factor = int(360 / len(probabilities))
 	new_angles = []
 	new_probabilities = []
 	for i in range(360):
-		new_angles.append(i+1)
+		new_angles.append(i + 1)
 	for i in range(len(probabilities)):
 		for j in range(splitting_factor):
 			new_probabilities.append(probabilities[i])
@@ -130,20 +130,20 @@ def final_interpolate(input_list):
 	max_val = max(input_list)
 	new_list = []
 	for item in input_list:
-		new_list.append(item/max_val)
+		new_list.append(item / max_val)
 	return new_list
 def generate_goal_probabilities(forward, backward):
 	new_list = []
 	for i in range(360):
 		new_list.append(1)
 	for i in range(180):
-		new_list[i] = new_list[i] - (i*(forward - backward)/180)
-		new_list[-(i+1)] = new_list[-(i+1)] - ((i+1)*(forward - backward)/180)
+		new_list[i] = new_list[i] - (i * (forward - backward) / 180)
+		new_list[-(i + 1)] = new_list[-(i + 1)] - ((i + 1) * (forward - backward) / 180)
 	return new_list
 def rotate_goal_probabilites(goal_angle, forward, backward):
 	general_goal = generate_goal_probabilities(forward, backward)
 	rotate_list = math.floor(goal_angle)
-	new_list = general_goal[-rotate_list:]+general_goal[:-rotate_list]
+	new_list = general_goal[-rotate_list:] + general_goal[:-rotate_list]
 	return new_list
 ''' List manipulation above '''
 
@@ -173,33 +173,69 @@ def shaded_polygons(precision, emergency, world_width, world_length):
 		triangle_coords.append([
 			emergency,
 			[emergency[0] + R * math.sin(temp_cur_angle), emergency[1] + R * math.cos(temp_cur_angle)],
-			[emergency[0] + R * math.sin(temp_cur_angle + temp_precision), emergency[1] + R * math.cos(temp_cur_angle + temp_precision)]
+			[emergency[0] + R * math.sin(temp_cur_angle + temp_precision),
+			 emergency[1] + R * math.cos(temp_cur_angle + temp_precision)]
 		])
 		current_angle = current_angle + precision
 	return triangle_coords
+def get_colours(input_list, num_colour):
+	presets = []
+	for i in range(num_colour):
+		presets.append(((1-(i/(num_colour-1))),i/(num_colour-1),0))
 
-def get_colours(input_list):
-	presets = [
-		'red',
-		'orangered',
-		'darkorange',
-		'gold',
-		'yellow',
-		'palegoldenrod',
-		'yellowgreen',
-		'limegreen',
-		'mediumspringgreen',
-		'lime'
-	]
 	colours = []
 	for item in input_list:
-		index = math.floor(10*item)
-		if index == 10:
-			index = 9
+		index = math.floor(num_colour * item)
+		if index == num_colour:
+			index = num_colour - 1
 		colours.append(presets[index])
 	return colours
 
-def main_function_to_run(car_positions, emergency, sweep_precision):
+def get_infographic_cars(traffic_pose_list, emergency_pose, precision_in, a_g, p_f, p_b, no_of_colours, brightness, e_colour, e_marker, t_colour, t_marker, w_width, w_length):
+
+	temp_angle_list, probability_list = main_function_to_run(traffic_pose_list, emergency_pose, precision_in, a_g, p_f, p_b)
+
+	fig, ax = plt.subplots()
+
+	colours = get_colours(probability_list, no_of_colours)
+	# polygons = shaded_polygons(sweep_precision, emergency)
+	polygons = shaded_polygons(1, emergency_vehicle_coords, width, length)
+	for i in range(len(polygons)):
+		poly = mpatches.Polygon(polygons[i], closed=True, alpha=brightness, color=colours[i], ec=None)
+		ax.add_patch(poly)
+
+	x_to_plot = []
+	y_to_plot = []
+	for item in traffic:
+		x_to_plot.append(item[0])
+		y_to_plot.append(item[1])
+
+	ax.scatter(x_to_plot, y_to_plot, color=t_colour, marker=t_marker)
+	ax.scatter(emergency_vehicle_coords[0], emergency_vehicle_coords[1], color=e_colour, marker=e_marker)
+	ax.set_xlim(0, w_width)
+	ax.set_ylim(0, w_length)
+	plt.show()
+def get_graph_of_pdf(traffic_pose_list, emergency_pose, precision_in, a_g, p_f, p_b):
+
+	angle_list, probability_list = main_function_to_run(traffic_pose_list, emergency_pose, precision_in, a_g, p_f, p_b)
+
+	plt.style.use('ggplot')
+
+	sweeped_angles_enumerated = [i for i, _ in enumerate(angle_list)]
+
+	plt.bar(sweeped_angles_enumerated, probability_list, color='green')
+	plt.xlabel("Angle from North, Clockwise")
+	plt.ylabel("Probability to move")
+	plt.title("Probability to move at a given angle")
+
+	plt.xticks(sweeped_angles_enumerated, angle_list)
+
+	plt.show()
+
+
+
+
+def main_function_to_run(car_positions, emergency, sweep_precision, goal_angle, forward_probability, backward_probability):
 	distances = find_distances(car_positions, emergency)
 	weighted_distances = distance_interpolate(distances)
 	angles = find_angles(car_positions, emergency)
@@ -210,72 +246,22 @@ def main_function_to_run(car_positions, emergency, sweep_precision):
 	sweeped_angles, probability_values = split_probabilities(probability_values)
 	probability_values = smear_probabilities(probability_values)
 	probability_values = final_interpolate(probability_values)
+
+	goal_list = rotate_goal_probabilites(goal_angle, forward_probability, backward_probability)
+	combined_probabilities = []
+	for i in range(360):
+		combined_probabilities.append(probability_values[i] * goal_list[i])
+	combined_probabilities = final_interpolate(combined_probabilities)
+	probability_values = combined_probabilities
+
 	return sweeped_angles, probability_values
 
-def get_prob_from_angle(traffic_pose_list, emergency_pose, angle):
-	temp_precision = 10
-	temp_angle_list, temp_probability_list = main_function_to_run(traffic_pose_list, emergency_pose, temp_precision)
-	test_angle = math.floor(angle)
-	return temp_probability_list[test_angle]
 
-traffic = [
-	[2, 25],
-	[6, 28],
-	[10, 27],
-	[10, 21],
-	[12, 26],
-	[13, 23],
-	[14, 28],
-	[1, 17],
-	[11, 11],
-	[13, 26]
-]
-emergency_vehicle_coords = [6, 17]
-width = 16
-length = 30
-precision = 10
-angle_list, probability_list = main_function_to_run(traffic, emergency_vehicle_coords, precision)
-goal_list = rotate_goal_probabilites(90,1,0.1)
-combined_probabilities = []
-for i in range(360):
-	combined_probabilities.append(probability_list[i]*goal_list[i])
-combined_probabilities = final_interpolate(combined_probabilities)
-probability_list = combined_probabilities
 
-# for i in range(45):
-# 	y = get_prob_from_angle(traffic, emergency_vehicle_coords, i+1)
-# 	print(y)
 
-fig, ax = plt.subplots()
+def get_prob_from_angle(traffic_pose_list, emergency_pose, test_angle, p_f, p_b, a_g, precision_in):
+	temp_angle_list, temp_probability_list = main_function_to_run(traffic_pose_list, emergency_pose, precision_in, a_g, p_f, p_b)
+	test_angle_index = math.floor(test_angle)
+	return temp_probability_list[test_angle_index]
 
-colours = get_colours(probability_list)
-# polygons = shaded_polygons(sweep_precision, emergency)
-polygons = shaded_polygons(1, emergency_vehicle_coords, width, length)
-for i in range(len(polygons)):
-	poly = mpatches.Polygon(polygons[i], closed=True, alpha=0.2, color=colours[i], ec=None)
-	ax.add_patch(poly)
 
-x_to_plot = []
-y_to_plot = []
-for item in traffic:
-	x_to_plot.append(item[0])
-	y_to_plot.append(item[1])
-
-ax.scatter(x_to_plot, y_to_plot, color='black', marker='x')
-ax.scatter(emergency_vehicle_coords[0], emergency_vehicle_coords[1], color='red', marker='x')
-ax.set_xlim(0, width)
-ax.set_ylim(0, length)
-plt.show()
-
-plt.style.use('ggplot')
-
-sweeped_angles_enumerated = [i for i, _ in enumerate(angle_list)]
-
-plt.bar(sweeped_angles_enumerated, probability_list, color='green')
-plt.xlabel("Angle from North Clockwise")
-plt.ylabel("Probability to move")
-plt.title("Probability to move at a given angle")
-
-plt.xticks(sweeped_angles_enumerated, angle_list)
-
-plt.show()
