@@ -153,8 +153,8 @@ def sweep_angles(precision, distances, angles):
 	tot_distances_list = []
 	while current_angle < 360:
 		tot_distances = 0
+		i = 0
 		for item in angles:
-			i = 0
 			if current_angle <= item < current_angle + precision:
 				tot_distances = tot_distances + distances[i]
 			i = i + 1
@@ -199,19 +199,19 @@ def get_infographic_cars(traffic_pose_list, emergency_pose, precision_in, a_g, p
 
 	colours = get_colours(probability_list, no_of_colours)
 	# polygons = shaded_polygons(sweep_precision, emergency)
-	polygons = shaded_polygons(1, emergency_vehicle_coords, width, length)
+	polygons = shaded_polygons(1, emergency_pose, w_width, w_length)
 	for i in range(len(polygons)):
 		poly = mpatches.Polygon(polygons[i], closed=True, alpha=brightness, color=colours[i], ec=None)
 		ax.add_patch(poly)
 
 	x_to_plot = []
 	y_to_plot = []
-	for item in traffic:
+	for item in traffic_pose_list:
 		x_to_plot.append(item[0])
 		y_to_plot.append(item[1])
 
 	ax.scatter(x_to_plot, y_to_plot, color=t_colour, marker=t_marker)
-	ax.scatter(emergency_vehicle_coords[0], emergency_vehicle_coords[1], color=e_colour, marker=e_marker)
+	ax.scatter(emergency_pose[0], emergency_pose[1], color=e_colour, marker=e_marker)
 	ax.set_xlim(0, w_width)
 	ax.set_ylim(0, w_length)
 	plt.show()
