@@ -88,12 +88,14 @@ class ContinuousVehicle(ABC):
 
 			# check for other vehicles
 			for v in self.observed_vehicles:
-				rel_pos_this_frame = test_point - v.relative_position
-				rel_pos_other_frame = rel_pos_this_frame.rotated_clockwise(-v.relative_heading)
-				other_vehicle_pose = v.pose_at_time(time)
-				if other_vehicle_pose is None: continue
-				rel_pos_other_frame_2 = (rel_pos_other_frame - other_vehicle_pose.position).rotated_clockwise(-other_vehicle_pose.heading)
-				if v.contains(rel_pos_other_frame_2): return True
+				other_vehicle_pose_at_t = v.pose_at_time(time)
+				# if the observed vehicle has no plan registered for time t, then ignore
+				if other_vehicle_pose_at_t is None: continue
+				# compute relative position of the test point w.r.t. the current position of the observed vehicle
+				vehicle_current_to_test_point = (test_point - v.relative_position).rotated_clockwise(-v.relative_heading)
+				# compute relative position of the test point w.r.t. the future position (at time t) of the observed vehicle
+				vehicle_at_t_to_test_point = (vehicle_current_to_test_point - other_vehicle_pose_at_t.position).rotated_clockwise(-other_vehicle_pose_at_t.heading)
+				if v.contains(vehicle_at_t_to_test_point): return True
 		return False
 
 	def pose_at_time(self, time: float) -> Pose | None:

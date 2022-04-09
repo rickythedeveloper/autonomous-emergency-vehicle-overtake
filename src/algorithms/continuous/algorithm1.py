@@ -52,6 +52,7 @@ class ContinuousCivilianVehicle(ContinuousVehicle):
 		super().__init__(VehicleType.civilian)
 		self.collision_test_points_local_frame = test_points_on_box(self._width, self._length, 0.1)
 
+		# register plan to go straight forever
 		for t in range(1, 20):
 			self.future_poses.append(FuturePose(
 				Pose(Vector2(0, CIVILIAN_SPEED * t), 0),
