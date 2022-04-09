@@ -77,11 +77,11 @@ class ContinuousSimulator:
 					v2.object.pose_at_time
 				))
 
-			def position_is_obstacle_v1_frame(position: Vector2):
-				return self.position_is_obstacle(v1.position_relative_to_world(position))
+			def position_is_obstacle_function_factory(vehicle_data: VehicleData):
+				return lambda x: self.position_is_obstacle(vehicle_data.position_relative_to_world(x))
 
 			# update obstacle info
-			v1.object.position_is_obstacle = position_is_obstacle_v1_frame
+			v1.object.position_is_obstacle = position_is_obstacle_function_factory(v1)
 
 	def roll_forward(self, dt: float):
 		self.update_observed_data()

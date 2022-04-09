@@ -10,7 +10,7 @@ import numpy as np
 # imports for simulation
 from src.models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
 from .models.continuous.ContinuousSimulator import ContinuousSimulator, VehicleData
-from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle
+from .algorithms.continuous.algorithm2 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle
 from .scenarios.continuous.scenario1 import scenario
 
 # imports for visualization
@@ -25,10 +25,10 @@ def get_visualization_cell_type(position: Vector2, vehicles: List[VehicleData]):
 			if v.object.vehicle_type == VehicleType.emergency: return VisualisationCellType.emergency
 			if v.object.vehicle_type == VehicleType.civilian: return VisualisationCellType.civilian
 
-		if isinstance(v.object, ContinuousEmergencyVehicle):
-			for future_pose in v.object.future_poses:
-				pose_position = v.position_relative_to_world(future_pose.pose.position)
-				if (position - pose_position).length < 1: return VisualisationCellType.emergency
+		for future_pose in v.object.future_poses:
+			pose_position = v.position_relative_to_world(future_pose.pose.position)
+			if (position - pose_position).length < 0.5:
+				return VisualisationCellType.emergency if isinstance(v.object, ContinuousEmergencyVehicle) else VisualisationCellType.civilian
 
 	return VisualisationCellType.road
 
