@@ -69,8 +69,8 @@ class ContinuousVehicle(ABC):
 
 			# check for other vehicles
 			for v in self.observed_vehicles:
-				if (v.relative_position - relative_position).length > 10: continue # TODO constant
 				rel_pos_this_frame = test_point - v.relative_position
+				if rel_pos_this_frame.length > 10: continue
 				rel_pos_other_frame = rel_pos_this_frame.rotated_clockwise(-v.relative_heading)
 				if v.contains(rel_pos_other_frame): return True
 		return False

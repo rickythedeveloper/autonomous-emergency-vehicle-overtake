@@ -59,7 +59,7 @@ class ContinuousCivilianVehicle(ContinuousVehicle):
 	def roll_forward(self, dt: float) -> None:
 		return
 
-NUM_POSES_IN_PLAN = 10
+NUM_POSES_IN_PLAN = 5
 DISTANCE_BETWEEN_POSES = 5
 MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
 ARC_SPLIT_LENGTH = 0.3
@@ -109,6 +109,7 @@ class ContinuousEmergencyVehicle(ContinuousVehicle):
 
 	def add_poses(self):
 		"""Keeps adding poses until we have NUM_POSES_IN_PLAN many poses in the plan"""
+		back_track_count = 0
 		while len(self.future_poses) < NUM_POSES_IN_PLAN:
 			final_pose = Pose.zero() if len(self.future_poses) == 0 else self.future_poses[-1]
 			weight_density_function = weight_density_generator(final_pose.position, final_pose.heading)
@@ -121,9 +122,14 @@ class ContinuousEmergencyVehicle(ContinuousVehicle):
 			# check the path does not collide
 			will_collide = self.arc_will_collide(new_arc)
 			if will_collide:
-				# TODO better backtracking
+				if back_track_count > 20: # TODO constant
+					self.future_poses.clear()
+					back_track_count = 0
+					print("too many iterations. clearing plans")
+
 				if len(self.future_poses) > 0:
 					del self.future_poses[-1]
+					back_track_count += 1
 					print('backtracked')
 			else:
 				self.future_poses.append(Pose(next_position, new_arc.end_heading))

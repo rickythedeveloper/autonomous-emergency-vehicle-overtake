@@ -63,7 +63,10 @@ def continuous_main():
 		# 	row: List[Tuple[float, float, float]] = []
 		# 	colors.append(row)
 		# 	for x in np.arange(-15, 15, 1):
-		# 		color: Tuple[float, float, float] = (200, 0, 0) if simulator.vehicles[-1].object.position_will_collide(Vector2(x, y), 0) else (0, 200, 0)
+		# 		if x == 0 and y == 0:
+		# 			color: Tuple[float, float, float] = (0, 0, 0)
+		# 		else:
+		# 			color: Tuple[float, float, float] = (200, 0, 0) if simulator.vehicles[-1].object.position_will_collide(Vector2(x, y), 0) else (0, 200, 0)
 		# 		row.append(color)
 		t += dt
 		# print(f'\rt={t}', end='')
@@ -74,13 +77,13 @@ def continuous_main():
 		visualize_result(
 			lambda x: get_visualization_cell_type(x, snapshot),
 			0.3,
-			Extent(-20, 20, -10, 60),
-			save_directory,
+			Extent(-15, 15, -10, 60),
+			os.path.join(save_directory, 'absolute'),
 			str(index)
 		)
 
 		# plt.imshow(obstacle_maps[index], origin='lower', extent=(-15, 15, -15, 15))
-		# obstacle_dir = os.path.join(save_directory, 'obstacle')
+		# obstacle_dir = os.path.join(save_directory, 'relative')
 		# os.makedirs(obstacle_dir, exist_ok=True)
 		# plt.savefig(os.path.join(obstacle_dir, str(index)))
 
