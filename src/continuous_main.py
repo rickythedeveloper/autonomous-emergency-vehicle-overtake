@@ -74,10 +74,21 @@ def continuous_main():
 	# visualize
 	save_directory = os.path.join('images', datetime.now().strftime("%Y-%d-%m_%H-%M-%S"))
 	for index, snapshot in enumerate(data):
+		emergency_vehicle_position: Vector2
+		for vehicle_data in snapshot:
+			if vehicle_data.object.vehicle_type == VehicleType.emergency:
+				emergency_vehicle_position = vehicle_data.position
+		if emergency_vehicle_position is None: raise Exception('emergency vehicle position not found')
+
 		visualize_result(
 			lambda x: get_visualization_cell_type(x, snapshot),
 			0.3,
-			Extent(-15, 15, -10, 60),
+			Extent(
+				emergency_vehicle_position.x - 15,
+				emergency_vehicle_position.x + 15,
+				emergency_vehicle_position.y - 10,
+				emergency_vehicle_position.y + 60
+			),
 			os.path.join(save_directory, 'absolute'),
 			str(index)
 		)
