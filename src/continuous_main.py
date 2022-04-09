@@ -26,8 +26,8 @@ def get_visualization_cell_type(position: Vector2, vehicles: List[VehicleData]):
 			if v.object.vehicle_type == VehicleType.civilian: return VisualisationCellType.civilian
 
 		if isinstance(v.object, ContinuousEmergencyVehicle):
-			for pose in v.object.future_poses:
-				pose_position = v.position_relative_to_world(pose.position)
+			for future_pose in v.object.future_poses:
+				pose_position = v.position_relative_to_world(future_pose.pose.position)
 				if (position - pose_position).length < 1: return VisualisationCellType.emergency
 
 	return VisualisationCellType.road
@@ -52,9 +52,15 @@ def continuous_main():
 	data: List[List[VehicleData]] = []
 
 	# obstacle_maps: List[List[List[Tuple[float, float, float]]]] = []
+	iter_done = 0
 	for i in range(n_iter):
-		# print(i)
-		simulator.roll_forward(dt)
+		print(i)
+		try:
+			simulator.roll_forward(dt)
+		except:
+			break
+
+		iter_done = i
 		data.append(copy.deepcopy(simulator.vehicles))
 
 		# colors: List[List[Tuple[float, float, float]]] = []
@@ -70,11 +76,11 @@ def continuous_main():
 		# 		row.append(color)
 		t += dt
 		# print(f'\rt={t}', end='')
-	print('simulation complete')
+	print('simulation complete iter_done = ', iter_done)
 	# visualize
 	save_directory = os.path.join('images', datetime.now().strftime("%Y-%d-%m_%H-%M-%S"))
 	for index, snapshot in enumerate(data):
-		emergency_vehicle_position: Vector2
+		emergency_vehicle_position: Vector2 | None = None
 		for vehicle_data in snapshot:
 			if vehicle_data.object.vehicle_type == VehicleType.emergency:
 				emergency_vehicle_position = vehicle_data.position

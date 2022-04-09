@@ -73,7 +73,8 @@ class ContinuousSimulator:
 					relative_position,
 					relative_velocity,
 					relative_heading,
-					v2.object.contains
+					v2.object.contains,
+					v2.object.pose_at_time
 				))
 
 			def position_is_obstacle_v1_frame(position: Vector2):

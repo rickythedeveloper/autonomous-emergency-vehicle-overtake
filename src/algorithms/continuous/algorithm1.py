@@ -1,11 +1,12 @@
 from __future__ import annotations
 from typing import List, Callable
+from dataclasses import dataclass
 import numpy as np
 from random import uniform
 from .utils.Arc import Arc, make_arc
 from .utils.Pose import Pose
 from .utils.heading import clean_heading
-from ...models.continuous.ContinuousVehicle import ContinuousVehicle, Control, LateralDirection, VehicleType
+from ...models.continuous.ContinuousVehicle import ContinuousVehicle, Control, FuturePose, LateralDirection, VehicleType
 from ...utils.Vector2 import Vector2
 
 def weight_density_generator(position: Vector2, heading: float) -> Callable[[float], float]:
@@ -41,6 +42,7 @@ def pick_angle(weight_density_function: Callable[[float], float], max_weight: fl
 		value = uniform(0, max_weight)
 		if value < weight_density_function(angle): return angle
 
+CIVILIAN_SPEED = 1
 class ContinuousCivilianVehicle(ContinuousVehicle):
 	_width = 2
 	_length = 3
@@ -50,11 +52,17 @@ class ContinuousCivilianVehicle(ContinuousVehicle):
 		super().__init__(VehicleType.civilian)
 		self.collision_test_points_local_frame = test_points_on_box(self._width, self._length, 0.1)
 
+		for t in range(1, 20):
+			self.future_poses.append(FuturePose(
+				Pose(Vector2(0, CIVILIAN_SPEED * t), 0),
+				t
+			))
+
 	def contains(self, position: Vector2) -> bool:
 		return -self._width / 2 < position.x < self._width / 2 and -self._length / 2 < position.y < self._length / 2
 
 	def update_control(self):
-		self.control = Control(0, LateralDirection.left, 50)
+		self.control = Control(CIVILIAN_SPEED, LateralDirection.left, np.Inf)
 
 	def roll_forward(self, dt: float) -> None:
 		return
@@ -62,13 +70,14 @@ class ContinuousCivilianVehicle(ContinuousVehicle):
 NUM_POSES_IN_PLAN = 5
 DISTANCE_BETWEEN_POSES = 5
 MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
-ARC_SPLIT_LENGTH = 0.3
+ARC_SPLIT_LENGTH = 0.1
+EMERGENCY_VEHICLE_SPEED = 2
+REMOVE_POSE_TIME = 1
 
 class ContinuousEmergencyVehicle(ContinuousVehicle):
 	_width = 2
 	_length = 3
 	collision_test_points_local_frame: List[Vector2] = []
-	future_poses: List[Pose] = []
 
 	def __init__(self):
 		super().__init__(VehicleType.emergency)
@@ -77,10 +86,15 @@ class ContinuousEmergencyVehicle(ContinuousVehicle):
 	def contains(self, position: Vector2) -> bool:
 		return -self._width / 2 < position.x < self._width / 2 and -self._length / 2 < position.y < self._length / 2
 
-	def arc_will_collide(self, arc: Arc):
+	def arc_will_collide(self, arc: Arc, start_time: float):
 		"""Check whether the vehicle will collide when running on the arc"""
-		for little_arc in arc.split(int(arc.length / ARC_SPLIT_LENGTH)):
-			if self.position_will_collide(little_arc.end_position, little_arc.end_heading):
+		num_arcs = int(arc.length / ARC_SPLIT_LENGTH)
+		if num_arcs == 0: num_arcs = 1
+		little_arc_length = arc.length / num_arcs
+		little_arc_duration = little_arc_length / EMERGENCY_VEHICLE_SPEED
+		for index, little_arc in enumerate(arc.split(num_arcs)):
+			little_arc_end_time = start_time + (index + 1) * little_arc_duration
+			if self.position_will_collide(little_arc.end_position, little_arc.end_heading, little_arc_end_time):
 				return True
 		return False
 
@@ -91,10 +105,10 @@ class ContinuousEmergencyVehicle(ContinuousVehicle):
 		Also removes the next pose if the vehicle is close to it.
 		"""
 		if len(self.future_poses) == 0: return
-		next_pose = self.future_poses[0]
+		next_pose = self.future_poses[0].pose
 		current_arc = make_arc(Pose.zero(), next_pose.position)
 
-		if self.arc_will_collide(current_arc):
+		if self.arc_will_collide(current_arc, 0):
 			self.future_poses.clear()
 			print('deleted plan due to possible collision')
 		else:
@@ -103,15 +117,16 @@ class ContinuousEmergencyVehicle(ContinuousVehicle):
 			if heading_discrepancy > MAX_ARRIVING_ANGLE_DISCREPANCY:
 				self.future_poses.clear()
 				print("deleted plan due to large discrepancy")
-			elif next_pose.position.length < self.control.speed * 1:
+			elif next_pose.position.length < self.control.speed * REMOVE_POSE_TIME:
 				del self.future_poses[0]
 				print("reached a pose")
 
 	def add_poses(self):
 		"""Keeps adding poses until we have NUM_POSES_IN_PLAN many poses in the plan"""
 		back_track_count = 0
+		no_plan_collision_count = 0
 		while len(self.future_poses) < NUM_POSES_IN_PLAN:
-			final_pose = Pose.zero() if len(self.future_poses) == 0 else self.future_poses[-1]
+			final_pose = Pose.zero() if len(self.future_poses) == 0 else self.future_poses[-1].pose
 			weight_density_function = weight_density_generator(final_pose.position, final_pose.heading)
 			max_weight = max_weight_generator(final_pose.position)
 			angle_picked = pick_angle(weight_density_function, max_weight)
@@ -120,19 +135,30 @@ class ContinuousEmergencyVehicle(ContinuousVehicle):
 			new_arc = make_arc(final_pose, next_position)
 
 			# check the path does not collide
-			will_collide = self.arc_will_collide(new_arc)
+			new_arc_start_time = 0.0 if len(self.future_poses) == 0 else self.future_poses[-1].time
+			will_collide = self.arc_will_collide(new_arc, new_arc_start_time)
 			if will_collide:
 				if back_track_count > 20: # TODO constant
 					self.future_poses.clear()
 					back_track_count = 0
+					no_plan_collision_count = 0
 					print("too many iterations. clearing plans")
+					continue
 
 				if len(self.future_poses) > 0:
 					del self.future_poses[-1]
 					back_track_count += 1
 					print('backtracked')
+				else:
+					no_plan_collision_count += 1
+					print('has no plan but a proposed path will collide', no_plan_collision_count)
+					if no_plan_collision_count > 20:
+						raise Exception('has no plan, and a proposed path will collide')
 			else:
-				self.future_poses.append(Pose(next_position, new_arc.end_heading))
+				arc_time = new_arc.length / EMERGENCY_VEHICLE_SPEED
+				end_time = arc_time if len(self.future_poses) == 0 else self.future_poses[-1].time + arc_time
+				self.future_poses.append(FuturePose(Pose(next_position, new_arc.end_heading), end_time))
+				no_plan_collision_count = 0
 				print("added a pose")
 
 	def rrt(self):
@@ -149,21 +175,21 @@ class ContinuousEmergencyVehicle(ContinuousVehicle):
 		velocity = Vector2(np.sin(half_delta_heading), np.cos(half_delta_heading)) * self.control.speed
 		delta_position = velocity * dt
 
-		future_poses: List[Pose] = []
+		future_poses: List[FuturePose] = []
 		for index, p in enumerate(self.future_poses):
-			rel_pos_previous_frame = p.position - delta_position
+			rel_pos_previous_frame = p.pose.position - delta_position
 			rel_pos_next_frame = rel_pos_previous_frame.rotated_clockwise(-delta_heading)
-			future_poses.append(Pose(rel_pos_next_frame, p.heading - delta_heading))
+			future_poses.append(FuturePose(Pose(rel_pos_next_frame, p.pose.heading - delta_heading), p.time - dt))
 		self.future_poses = future_poses
 
 	def update_control(self):
-		assert not self.position_will_collide(Vector2.zero(), 0), 'The vehicle has collisded'
+		assert not self.position_will_collide(Vector2.zero(), 0, 0), 'The vehicle has collisded'
 
 		self.rrt()
 
-		next_pose = self.future_poses[0]
+		next_pose = self.future_poses[0].pose
 
 		arc = make_arc(Pose.zero(), next_pose.position)
 		direction = LateralDirection.right if arc.circle.center.x > 0 else LateralDirection.left
 
-		self.control = Control(1, direction, arc.circle.radius)
+		self.control = Control(EMERGENCY_VEHICLE_SPEED, direction, arc.circle.radius)

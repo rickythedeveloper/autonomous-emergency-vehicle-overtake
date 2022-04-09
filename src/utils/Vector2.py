@@ -25,8 +25,6 @@ class Vector2:
 		return Vector2(self.x - other.x, self.y - other.y)
 
 	def __mul__(self, scalar: int | float):
-		if not (isinstance(scalar, int) or isinstance(scalar, float)):
-			raise NotImplementedError
 		return Vector2(self.x * scalar, self.y * scalar)
 
 	def __truediv__(self, scalar: int | float):

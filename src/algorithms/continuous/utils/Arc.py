@@ -58,20 +58,28 @@ class Arc:
 			arcs.append(Arc(self.circle, start_angle, segment_angle))
 		return arcs
 
+	def point_on_arc(self, proportion: float):
+		if proportion < 0 or proportion > 1: raise Exception('proportion should be between 0 and 1')
+		point_angle = self.start_angle + self.arc_angle * proportion
+		return Vector2(np.sin(point_angle), np.cos(point_angle)) * self.circle.radius + self.circle.center
+
+
 def make_arc_from_origin(goal_position: Vector2) -> Arc:
 	perp_bisector_slope = -1 / goal_position.slope
 	perp_bisector_point = goal_position / 2
 	perp_bisector_y_intercept = perp_bisector_point.y - perp_bisector_slope * perp_bisector_point.x # y = ax + b -> b = y - ax
 	y_center = 0
-	x_center = -perp_bisector_y_intercept / perp_bisector_slope # y = ax + b so x = -b/a
+	if perp_bisector_slope == 0: x_center = 10000
+	else: x_center = -perp_bisector_y_intercept / perp_bisector_slope # y = ax + b so x = -b/a
+	if np.abs(x_center) > 10000: x_center = np.sign(x_center) * 10000
 	center = Vector2(x_center, y_center)
 	radius = np.abs(x_center)
 	radius2 = (goal_position - center).length
 	assert radius * 0.99 < radius2 < radius * 1.01, f'goal: {goal_position}, radius1={radius}, radius2={radius2}'
 	circle = Circle(center, radius)
 
-	start_angle = (3 / 2 if goal_position.x > 0 else 1 / 2) * np.pi
-	is_clock_wise = goal_position.x > 0
+	start_angle = (3 / 2 if x_center > 0 else 1 / 2) * np.pi
+	is_clock_wise = x_center > 0
 
 	end_angle = circle.center.heading_to(goal_position)
 	arc_angle = subtract_heading(end_angle, start_angle, 0 if is_clock_wise else -2 * np.pi)
