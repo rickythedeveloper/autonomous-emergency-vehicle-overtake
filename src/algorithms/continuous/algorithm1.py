@@ -8,18 +8,6 @@ from .utils.heading import clean_heading
 from ...models.continuous.ContinuousVehicle import ContinuousVehicle, Control, FuturePose, LateralDirection, VehicleType
 from ...utils.Vector2 import Vector2
 
-def weight_density_generator(position: Vector2, heading: float) -> Callable[[float], float]:
-	angle_range = np.pi / 6
-
-	def weight_density(angle: float):
-		angle_modulo = angle % (2 * np.pi)
-		if angle_modulo < angle_range / 2 or angle_modulo > 2 * np.pi - angle_range / 2: return 1
-		return 0
-
-	return weight_density
-
-def max_weight_generator(position: Vector2) -> float: return 1
-
 def test_points_on_box(width: float, length: float, spacing: float = 0.1) -> List[Vector2]:
 	half_width, half_length = width / 2, length / 2
 	test_points = []
@@ -35,9 +23,9 @@ def test_points_on_box(width: float, length: float, spacing: float = 0.1) -> Lis
 
 	return test_points
 
-def pick_angle(weight_density_function: Callable[[float], float], max_weight: float):
+def pick_angle(weight_density_function: Callable[[float], float], max_weight: float, min_angle: float, max_angle: float):
 	while True:
-		angle = uniform(0, 2 * np.pi)
+		angle = uniform(min_angle, max_angle)
 		value = uniform(0, max_weight)
 		if value < weight_density_function(angle): return angle
 
@@ -46,6 +34,7 @@ DISTANCE_BETWEEN_POSES = 5
 MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
 ARC_SPLIT_LENGTH = 0.3
 REMOVE_POSE_TIME = 1
+CONE_ANGLE = np.pi / 6
 
 class Algorithm2Vehicle(ContinuousVehicle):
 	speed: float
@@ -60,6 +49,13 @@ class Algorithm2Vehicle(ContinuousVehicle):
 
 	def contains(self, position: Vector2) -> bool:
 		return -self._width / 2 < position.x < self._width / 2 and -self._length / 2 < position.y < self._length / 2
+
+	def weight_density_generator(self, position: Vector2, heading: float) -> Callable[[float], float]:
+		def weight_density(angle: float): return 1
+		return weight_density
+
+	def max_weight_generator(self, position: Vector2) -> float:
+		return 1
 
 	def arc_will_collide(self, arc: Arc, start_time: float):
 		"""Check whether the vehicle will collide when running on the arc"""
@@ -102,9 +98,9 @@ class Algorithm2Vehicle(ContinuousVehicle):
 		no_plan_collision_count = 0
 		while len(self.future_poses) < NUM_POSES_IN_PLAN:
 			final_pose = Pose.zero() if len(self.future_poses) == 0 else self.future_poses[-1].pose
-			weight_density_function = weight_density_generator(final_pose.position, final_pose.heading)
-			max_weight = max_weight_generator(final_pose.position)
-			angle_picked = pick_angle(weight_density_function, max_weight)
+			weight_density_function = self.weight_density_generator(final_pose.position, final_pose.heading)
+			max_weight = self.max_weight_generator(final_pose.position)
+			angle_picked = pick_angle(weight_density_function, max_weight, -CONE_ANGLE / 2, CONE_ANGLE / 2)
 			next_position_last_pose_frame = Vector2(np.sin(angle_picked), np.cos(angle_picked)) * DISTANCE_BETWEEN_POSES
 			next_position = final_pose.position_relative_to_world(next_position_last_pose_frame)
 			new_arc = make_arc(final_pose, next_position)
