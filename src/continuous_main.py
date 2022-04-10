@@ -10,7 +10,7 @@ import numpy as np
 # imports for simulation
 from src.models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
 from .models.continuous.ContinuousSimulator import ContinuousSimulator, VehicleData
-from .algorithms.continuous.algorithm2 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle
+from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle
 from .scenarios.continuous.scenario1 import scenario
 
 # imports for visualization
