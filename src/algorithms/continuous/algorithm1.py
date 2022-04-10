@@ -169,6 +169,12 @@ CIVILIAN_SPEED = 1
 class ContinuousCivilianVehicle(Algorithm2Vehicle):
 	def __init__(self):
 		super().__init__(VehicleType.civilian, CIVILIAN_SPEED)
+		for n in range(NUM_POSES_IN_PLAN):
+			y = (n + 1) * DISTANCE_BETWEEN_POSES
+			self.future_poses.append(FuturePose(
+				Pose(Vector2(0, y), 0),
+				y / CIVILIAN_SPEED
+			))
 
 EMERGENCY_SPEED = 2
 class ContinuousEmergencyVehicle(Algorithm2Vehicle):
