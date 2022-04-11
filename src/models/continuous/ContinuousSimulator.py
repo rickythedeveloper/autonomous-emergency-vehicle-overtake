@@ -2,6 +2,7 @@ from typing import List, Callable
 from dataclasses import dataclass
 import numpy as np
 from .ContinuousVehicle import ContinuousVehicle, LateralDirection, ObservedVehicle
+from ...algorithms.continuous.utils.heading import clean_heading
 from ...utils.Vector2 import Vector2
 
 @dataclass
@@ -15,11 +16,7 @@ class VehicleData:
 	def heading(self): return self._heading
 
 	@heading.setter
-	def heading(self, value: float):
-		# Make sure the heading is between zero and two pi
-		self._heading = value
-		while self._heading < 0: self._heading += 2 * np.pi
-		while self._heading > 2 * np.pi: self._heading -= 2 * np.pi
+	def heading(self, value: float): self._heading = clean_heading(value)
 
 	def position_relative_to_world(self, relative_position: Vector2):
 		return relative_position.rotated_clockwise(self.heading) + self.position
@@ -82,6 +79,8 @@ class ContinuousSimulator:
 
 			# update obstacle info
 			v1.object.position_is_obstacle = position_is_obstacle_function_factory(v1)
+
+			v1.object.road_heading = -v1.heading
 
 	def roll_forward(self, dt: float):
 		self.update_observed_data()

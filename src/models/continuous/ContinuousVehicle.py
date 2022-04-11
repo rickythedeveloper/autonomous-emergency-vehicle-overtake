@@ -8,6 +8,7 @@ import numpy as np
 
 from ...algorithms.continuous.utils.Arc import make_arc
 from ...algorithms.continuous.utils.Pose import Pose
+from ...algorithms.continuous.utils.heading import clean_heading
 from ...utils.Vector2 import Vector2
 
 class VehicleType(Enum):
@@ -48,11 +49,19 @@ class ContinuousVehicle(ABC):
 	position_is_obstacle: Callable[[Vector2], bool] # returns whether the given relative position is in an obstacle
 	control: Control = Control.zero()
 	future_poses: List[FuturePose]
+	_road_heading: float
 
 	def __init__(self, vehicle_type: VehicleType):
 		self._vehicle_type = vehicle_type
 		self.future_poses = []
 		self.observed_vehicles = []
+		self._road_heading = 0.0
+
+	@property
+	def road_heading(self): return self._road_heading
+
+	@road_heading.setter
+	def road_heading(self, value): self._road_heading = clean_heading(value)
 
 	@property
 	def vehicle_type(self): return self._vehicle_type

@@ -1,5 +1,6 @@
 from __future__ import annotations
-from typing import List, Callable
+from typing import List, Callable, Tuple
+from enum import Enum
 import numpy as np
 from random import uniform
 from .utils.Arc import Arc, make_arc
@@ -7,6 +8,25 @@ from .utils.Pose import Pose
 from .utils.heading import clean_heading
 from ...models.continuous.ContinuousVehicle import ContinuousVehicle, Control, FuturePose, LateralDirection, VehicleType
 from ...utils.Vector2 import Vector2
+
+GaussianParameter = Tuple[float, float]
+def compute_overall_gaussian_parameter(parameters: List[GaussianParameter]) -> GaussianParameter:
+	sum_mu_over_sigma_squared = 0
+	sum_one_over_sigma_squared = 0
+	for p in parameters:
+		mu_i = p[0]
+		sigma_i = p[1]
+		sum_mu_over_sigma_squared += mu_i / (sigma_i ** 2)
+		sum_one_over_sigma_squared += 1 / (sigma_i ** 2)
+	mu = sum_mu_over_sigma_squared / sum_one_over_sigma_squared
+	sigma = np.sqrt(1 / sum_one_over_sigma_squared)
+	return mu, sigma
+
+
+def normalised_angle_gaussian(param: GaussianParameter, x: float):
+	mu, sigma = param
+	x_minus_mu = clean_heading(x - mu, -np.pi) # (x - mu) between -pi and pi
+	return np.exp(-0.5 * (x_minus_mu ** 2) / (sigma ** 2))
 
 def test_points_on_box(width: float, length: float, spacing: float = 0.1) -> List[Vector2]:
 	half_width, half_length = width / 2, length / 2
@@ -29,12 +49,17 @@ def pick_angle(weight_density_function: Callable[[float], float], max_weight: fl
 		value = uniform(0, max_weight)
 		if value < weight_density_function(angle): return angle
 
+class Mode(Enum):
+	SIMPLE_CONE = 0
+	WITH_ROAD_DIRECTION = 1
+
 NUM_POSES_IN_PLAN = 5
 DISTANCE_BETWEEN_POSES = 5
 MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
 ARC_SPLIT_LENGTH = 0.3
 REMOVE_POSE_TIME = 1
 CONE_ANGLE = np.pi / 6
+RUN_MODE = Mode.WITH_ROAD_DIRECTION
 
 class Algorithm2Vehicle(ContinuousVehicle):
 	speed: float
@@ -51,7 +76,13 @@ class Algorithm2Vehicle(ContinuousVehicle):
 		return -self._width / 2 < position.x < self._width / 2 and -self._length / 2 < position.y < self._length / 2
 
 	def weight_density_generator(self, position: Vector2, heading: float) -> Callable[[float], float]:
-		def weight_density(angle: float): return 1
+		if RUN_MODE == Mode.SIMPLE_CONE:
+			def weight_density(angle: float): return 1
+		elif RUN_MODE == Mode.WITH_ROAD_DIRECTION:
+			def weight_density(angle: float):
+				return normalised_angle_gaussian((self.road_heading - heading, np.pi / 24), angle)
+		else:
+			def weight_density(): raise NotImplementedError
 		return weight_density
 
 	def max_weight_generator(self, position: Vector2) -> float:
