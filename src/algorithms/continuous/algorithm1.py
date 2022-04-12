@@ -14,7 +14,7 @@ def compute_overall_gaussian_parameter(parameters: List[GaussianParameter]) -> G
 	sum_mu_over_sigma_squared = 0
 	sum_one_over_sigma_squared = 0
 	for p in parameters:
-		mu_i = p[0]
+		mu_i = clean_heading(p[0], -np.pi) # enforce mu_i to be between -pi and pi
 		sigma_i = p[1]
 		sum_mu_over_sigma_squared += mu_i / (sigma_i ** 2)
 		sum_one_over_sigma_squared += 1 / (sigma_i ** 2)
@@ -22,6 +22,10 @@ def compute_overall_gaussian_parameter(parameters: List[GaussianParameter]) -> G
 	sigma = np.sqrt(1 / sum_one_over_sigma_squared)
 	return mu, sigma
 
+def gaussian_function_generator(parameter: GaussianParameter, normalisation_constant: float) -> Callable[[float], float]:
+	def gaussian_function(angle: float) -> float:
+		return normalised_angle_gaussian(parameter, angle) * normalisation_constant
+	return gaussian_function
 
 def normalised_angle_gaussian(param: GaussianParameter, x: float):
 	mu, sigma = param
@@ -49,17 +53,23 @@ def pick_angle(weight_density_function: Callable[[float], float], max_weight: fl
 		value = uniform(0, max_weight)
 		if value < weight_density_function(angle): return angle
 
+class VehicleStuckError(Exception):
+	"""Vehicle cannot plan the next path"""
+	pass
+
 class Mode(Enum):
 	SIMPLE_CONE = 0
 	WITH_ROAD_DIRECTION = 1
+	WITH_ROAD_AND_VEHICLES = 2
 
-NUM_POSES_IN_PLAN = 5
+NUM_POSES_IN_PLAN = 3
 DISTANCE_BETWEEN_POSES = 5
 MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
 ARC_SPLIT_LENGTH = 0.3
 REMOVE_POSE_TIME = 1
 CONE_ANGLE = np.pi / 6
-RUN_MODE = Mode.WITH_ROAD_DIRECTION
+RUN_MODE = Mode.WITH_ROAD_AND_VEHICLES
+ROAD_HEADING_SIGMA = np.pi / 24
 
 class Algorithm2Vehicle(ContinuousVehicle):
 	speed: float
@@ -75,18 +85,42 @@ class Algorithm2Vehicle(ContinuousVehicle):
 	def contains(self, position: Vector2) -> bool:
 		return -self._width / 2 < position.x < self._width / 2 and -self._length / 2 < position.y < self._length / 2
 
-	def weight_density_generator(self, position: Vector2, heading: float) -> Callable[[float], float]:
+	def weight_density_generator(self, position: Vector2, heading: float, time: float) -> Callable[[float], float]:
 		if RUN_MODE == Mode.SIMPLE_CONE:
-			def weight_density(angle: float): return 1
+			return lambda angle: 1
 		elif RUN_MODE == Mode.WITH_ROAD_DIRECTION:
-			def weight_density(angle: float):
-				return normalised_angle_gaussian((self.road_heading - heading, np.pi / 24), angle)
-		else:
-			def weight_density(): raise NotImplementedError
-		return weight_density
+			return gaussian_function_generator((self.road_heading - heading, ROAD_HEADING_SIGMA), 1)
+		elif RUN_MODE == Mode.WITH_ROAD_AND_VEHICLES:
+			gaussian_parameters: List[GaussianParameter] = [
+				(self.road_heading - heading, ROAD_HEADING_SIGMA)  # road heading
+			]
 
-	def max_weight_generator(self, position: Vector2) -> float:
-		return 1
+			# avoid other vehicles
+			for v in self.observed_vehicles:
+				pose = v.pose_at_time(time)
+				if pose is None: continue
+
+				v_future_position = v.relative_position + pose.position.rotated_clockwise(v.relative_heading)
+				v_future_position_from_pos = (v_future_position - position).rotated_clockwise(-heading)
+
+				mu_opposite = Vector2.zero().heading_to(v_future_position_from_pos)
+				mu_v = clean_heading(mu_opposite + np.pi, -np.pi)
+
+				sigma_v = v_future_position_from_pos.length * np.pi / 2  # pi / 2 when distance is 1m
+				gaussian_parameters.append((mu_v, sigma_v))
+
+			g_param = compute_overall_gaussian_parameter(gaussian_parameters)
+
+			if g_param[0] < -CONE_ANGLE / 2 or g_param[0] > CONE_ANGLE / 2:
+				left_value = normalised_angle_gaussian(g_param, -CONE_ANGLE / 2)
+				right_value = normalised_angle_gaussian(g_param, CONE_ANGLE / 2)
+				normalisation_constant = 1 / max(left_value, right_value)
+			else:
+				normalisation_constant = 1
+
+			return gaussian_function_generator(g_param, normalisation_constant)
+		else:
+			raise NotImplementedError
 
 	def arc_will_collide(self, arc: Arc, start_time: float):
 		"""Check whether the vehicle will collide when running on the arc"""
@@ -129,8 +163,9 @@ class Algorithm2Vehicle(ContinuousVehicle):
 		no_plan_collision_count = 0
 		while len(self.future_poses) < NUM_POSES_IN_PLAN:
 			final_pose = Pose.zero() if len(self.future_poses) == 0 else self.future_poses[-1].pose
-			weight_density_function = self.weight_density_generator(final_pose.position, final_pose.heading)
-			max_weight = self.max_weight_generator(final_pose.position)
+			final_time = 0 if len(self.future_poses) == 0 else self.future_poses[-1].time
+			weight_density_function = self.weight_density_generator(final_pose.position, final_pose.heading, final_time)
+			max_weight = 1
 			angle_picked = pick_angle(weight_density_function, max_weight, -CONE_ANGLE / 2, CONE_ANGLE / 2)
 			next_position_last_pose_frame = Vector2(np.sin(angle_picked), np.cos(angle_picked)) * DISTANCE_BETWEEN_POSES
 			next_position = final_pose.position_relative_to_world(next_position_last_pose_frame)
@@ -155,7 +190,7 @@ class Algorithm2Vehicle(ContinuousVehicle):
 					no_plan_collision_count += 1
 					print('has no plan but a proposed path will collide', no_plan_collision_count)
 					if no_plan_collision_count > 20:
-						raise Exception('has no plan, and a proposed path will collide')
+						raise VehicleStuckError
 			else:
 				arc_time = new_arc.length / self.speed
 				end_time = arc_time if len(self.future_poses) == 0 else self.future_poses[-1].time + arc_time

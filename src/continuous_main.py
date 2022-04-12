@@ -10,7 +10,7 @@ import numpy as np
 # imports for simulation
 from src.models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
 from .models.continuous.ContinuousSimulator import ContinuousSimulator, VehicleData
-from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle
+from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle, VehicleStuckError
 from .scenarios.continuous.scenario1 import scenario
 
 # imports for visualization
@@ -57,7 +57,9 @@ def continuous_main():
 		print(i)
 		try:
 			simulator.roll_forward(dt)
-		except:
+		except VehicleStuckError:
+			break
+		except KeyboardInterrupt:
 			break
 
 		iter_done = i

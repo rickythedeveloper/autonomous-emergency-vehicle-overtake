@@ -38,7 +38,7 @@ class Vector2:
 		angle = np.arctan(rel.x / rel.y) # between -pi/2 and pi/2
 		if rel.x < 0 and rel.y > 0: angle += 2 * np.pi
 		elif rel.y < 0: angle += np.pi
-		assert 0 < angle < 2 * np.pi, f'heading from {self} to {other} is out of range'
+		assert 0 <= angle <= 2 * np.pi, f'heading {angle} from {self} to {other} is out of range'
 		return angle
 
 	def rotated_clockwise(self, angle: float) -> Vector2:

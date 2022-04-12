@@ -13,7 +13,7 @@ class Pose:
 		self.heading = heading
 
 	def __str__(self):
-		return f'Pose(x={round(self.position.x, 2)}, y={round(self.position.y)}, heading={round(self.heading * 180 / np.pi)})'
+		return f'Pose(x={round(self.position.x, 2)}, y={round(self.position.y)}, heading={self.heading}rad ({round(self.heading * 180 / np.pi)}deg))'
 
 	@property
 	def heading(self): return self._heading
