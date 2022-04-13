@@ -62,7 +62,11 @@ class Mode(Enum):
 	WITH_ROAD_DIRECTION = 1
 	WITH_ROAD_AND_VEHICLES = 2
 
-NUM_POSES_IN_PLAN = 3
+NUM_POSES_IN_PLAN = 4
+MAX_COLLISION_COUNT_BEFORE_BACKTRACK = 5
+MAX_COLLISION_COUNT_BEFORE_TERMINATION = 20
+MAX_BACKTRACK_COUNT_FOR_CLEARING = 5
+MAX_CLEAR_COUNT = 5
 DISTANCE_BETWEEN_POSES = 5
 MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
 ARC_SPLIT_LENGTH = 0.3
@@ -164,8 +168,9 @@ class Algorithm2Vehicle(ContinuousVehicle):
 
 	def add_poses(self):
 		"""Keeps adding poses until we have NUM_POSES_IN_PLAN many poses in the plan"""
-		back_track_count = 0
-		no_plan_collision_count = 0
+		collision_count = 0
+		backtrack_count = 0
+		clear_count = 0
 		while len(self.future_poses) < NUM_POSES_IN_PLAN:
 			final_pose = Pose.zero() if len(self.future_poses) == 0 else self.future_poses[-1].pose
 			final_time = 0 if len(self.future_poses) == 0 else self.future_poses[-1].time
@@ -180,27 +185,37 @@ class Algorithm2Vehicle(ContinuousVehicle):
 			new_arc_start_time = 0.0 if len(self.future_poses) == 0 else self.future_poses[-1].time
 			will_collide = self.arc_will_collide(new_arc, new_arc_start_time)
 			if will_collide:
-				if back_track_count > 20: # TODO constant
-					self.future_poses.clear()
-					back_track_count = 0
-					no_plan_collision_count = 0
-					print("too many iterations. clearing plans")
+				if collision_count < MAX_COLLISION_COUNT_BEFORE_BACKTRACK:
+					collision_count += 1
+					# print('collision. no backtrack')
 					continue
-
-				if len(self.future_poses) > 0:
+				if len(self.future_poses) == 0:
+					if collision_count < MAX_COLLISION_COUNT_BEFORE_TERMINATION:
+						collision_count += 1
+						# print('collision, but has no plan, so keep going')
+						continue
+					print(f'vehicle could not propose a new path with no plan')
+					raise VehicleStuckError
+				if backtrack_count < MAX_BACKTRACK_COUNT_FOR_CLEARING:
 					del self.future_poses[-1]
-					back_track_count += 1
+					backtrack_count += 1
+					collision_count = 0
 					print('backtracked')
-				else:
-					no_plan_collision_count += 1
-					print('has no plan but a proposed path will collide', no_plan_collision_count)
-					if no_plan_collision_count > 20:
-						raise VehicleStuckError
+					continue
+				if clear_count < MAX_CLEAR_COUNT:
+					self.future_poses.clear()
+					clear_count += 1
+					backtrack_count = 0
+					collision_count = 0
+					print('cleared')
+					continue
+				print(f'vehicle cleared plan too many times)')
+				raise VehicleStuckError
 			else:
 				arc_time = new_arc.length / self.speed
 				end_time = arc_time if len(self.future_poses) == 0 else self.future_poses[-1].time + arc_time
 				self.future_poses.append(FuturePose(Pose(next_position, new_arc.end_heading), end_time))
-				no_plan_collision_count = 0
+				collision_count = 0
 				print("added a pose")
 
 	def rrt(self):
@@ -225,7 +240,9 @@ class Algorithm2Vehicle(ContinuousVehicle):
 		self.future_poses = future_poses
 
 	def update_control(self):
-		assert not self.position_will_collide(Vector2.zero(), 0, 0), 'The vehicle has collisded'
+		if self.position_will_collide(Vector2.zero(), 0, 0):
+			print('vehicle has collided')
+			raise VehicleStuckError
 
 		self.rrt()
 
