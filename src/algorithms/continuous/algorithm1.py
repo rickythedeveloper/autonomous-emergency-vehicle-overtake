@@ -69,7 +69,11 @@ ARC_SPLIT_LENGTH = 0.3
 REMOVE_POSE_TIME = 1
 CONE_ANGLE = np.pi / 6
 RUN_MODE = Mode.WITH_ROAD_AND_VEHICLES
+
+# parameters for Gaussian angle picking
 ROAD_HEADING_SIGMA = np.pi / 24
+EMERGENCY_AVOID_SIGMA = np.pi / 3
+CIVILIAN_AVOID_SIGMA = np.pi / 2
 
 class Algorithm2Vehicle(ContinuousVehicle):
 	speed: float
@@ -106,7 +110,8 @@ class Algorithm2Vehicle(ContinuousVehicle):
 				mu_opposite = Vector2.zero().heading_to(v_future_position_from_pos)
 				mu_v = clean_heading(mu_opposite + np.pi, -np.pi)
 
-				sigma_v = v_future_position_from_pos.length * np.pi / 2  # pi / 2 when distance is 1m
+				sigma_v = v_future_position_from_pos.length * \
+					(EMERGENCY_AVOID_SIGMA if v.vehicle_type == VehicleType.emergency else CIVILIAN_AVOID_SIGMA)
 				gaussian_parameters.append((mu_v, sigma_v))
 
 			g_param = compute_overall_gaussian_parameter(gaussian_parameters)
