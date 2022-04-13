@@ -192,7 +192,8 @@ class Algorithm2Vehicle(ContinuousVehicle):
 			final_time = 0 if len(self.future_poses) == 0 else self.future_poses[-1].time
 			weight_density_function = self.weight_density_generator(final_pose.position, final_pose.heading, final_time)
 			max_weight = 1
-			angle_picked = pick_angle(weight_density_function, max_weight, -CONE_ANGLE / 2, CONE_ANGLE / 2)
+			# angle_picked = pick_angle(weight_density_function, max_weight, -CONE_ANGLE / 2, CONE_ANGLE / 2)
+			angle_picked = pick_angle(weight_density_function, max_weight, -np.pi, np.pi) # TODO revert to above for cone
 			next_position_last_pose_frame = Vector2(np.sin(angle_picked), np.cos(angle_picked)) * DISTANCE_BETWEEN_POSES
 			next_position = final_pose.position_relative_to_world(next_position_last_pose_frame)
 			new_arc = make_arc(final_pose, next_position)
@@ -268,7 +269,7 @@ class ContinuousCivilianVehicle(Algorithm2Vehicle):
 				y / CIVILIAN_SPEED
 			))
 
-	# TODO remove these two functions to make civilian cars do PDF
+	# # TODO remove these two functions to make civilian cars do PDF
 	def roll_forward(self, dt: float):
 		return
 
