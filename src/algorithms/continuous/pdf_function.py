@@ -1,4 +1,4 @@
-from ...algorithms.continuous.PDFs.PDF_V8 import *
+from ...algorithms.continuous.PDFs.NewPDFs import *
 
 traffic = [
 	[2, 25],
@@ -10,21 +10,13 @@ traffic = [
 	[14, 28],
 	[1, 17],
 	[11, 11],
-	[13, 26]
+	[13, 26],
+	[-2, -5],
+	[-1, -2]
 ]
-emergency_vehicle_coords = [6, 17]
-width = 16
-length = 30
-precision = 10
-f_prob = 1
-b_prob = 0.1
-g_angle = 0
-colours_in_infographic = 7
-opacity = 0.2
-emergency_colour = 'red'
-emergency_marker = 'x'
-traffic_colour = 'black'
-traffic_marker = 'x'
+emergency_vehicle_coords = [3, 12]
+heading = 30
+find_probability_for_this_angle = 45
 
-y = get_prob_from_angle(traffic, emergency_vehicle_coords, 30, f_prob, b_prob, g_angle, precision)
-print(y)
+test_prob = angle_probability_from_pdf(traffic, emergency_vehicle_coords, heading, find_probability_for_this_angle)
+print(test_prob)
