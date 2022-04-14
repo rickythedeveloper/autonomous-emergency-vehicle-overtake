@@ -67,11 +67,10 @@ MAX_COLLISION_COUNT_BEFORE_BACKTRACK = 5
 MAX_COLLISION_COUNT_BEFORE_TERMINATION = 20
 MAX_BACKTRACK_COUNT_FOR_CLEARING = 5
 MAX_CLEAR_COUNT = 5
-DISTANCE_BETWEEN_POSES = 5
 MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
-ARC_SPLIT_LENGTH = 0.3
-REMOVE_POSE_TIME = 1
-CONE_ANGLE = np.pi / 6
+ARC_SPLIT_LENGTH = 0.1
+REMOVE_POSE_TIME = 0.6
+MIN_TURNING_RADIUS = 10
 RUN_MODE = Mode.WITH_ROAD_AND_VEHICLES
 
 # parameters for Gaussian angle picking
@@ -81,6 +80,8 @@ CIVILIAN_AVOID_SIGMA = np.pi / 2
 
 class Algorithm2Vehicle(ContinuousVehicle):
 	speed: float
+	distance_between_poses: float
+	cone_angle: float
 	_width = 2
 	_length = 3
 	collision_test_points_local_frame: List[Vector2] = []
@@ -88,6 +89,8 @@ class Algorithm2Vehicle(ContinuousVehicle):
 	def __init__(self, vehicle_type: VehicleType, speed: float):
 		super().__init__(vehicle_type)
 		self.speed = speed
+		self.distance_between_poses = speed * 2
+		self.cone_angle = np.arccos(1 - 0.5 * (self.distance_between_poses / MIN_TURNING_RADIUS) ** 2)
 		self.collision_test_points_local_frame = test_points_on_box(self._width, self._length, 0.1)
 
 	def contains(self, position: Vector2) -> bool:
@@ -120,9 +123,9 @@ class Algorithm2Vehicle(ContinuousVehicle):
 
 			g_param = compute_overall_gaussian_parameter(gaussian_parameters)
 
-			if g_param[0] < -CONE_ANGLE / 2 or g_param[0] > CONE_ANGLE / 2:
-				left_value = normalised_angle_gaussian(g_param, -CONE_ANGLE / 2)
-				right_value = normalised_angle_gaussian(g_param, CONE_ANGLE / 2)
+			if g_param[0] < -self.cone_angle / 2 or g_param[0] > self.cone_angle / 2:
+				left_value = normalised_angle_gaussian(g_param, -self.cone_angle / 2)
+				right_value = normalised_angle_gaussian(g_param, self.cone_angle / 2)
 				normalisation_constant = 1 / max(left_value, right_value)
 			else:
 				normalisation_constant = 1
@@ -176,8 +179,8 @@ class Algorithm2Vehicle(ContinuousVehicle):
 			final_time = 0 if len(self.future_poses) == 0 else self.future_poses[-1].time
 			weight_density_function = self.weight_density_generator(final_pose.position, final_pose.heading, final_time)
 			max_weight = 1
-			angle_picked = pick_angle(weight_density_function, max_weight, -CONE_ANGLE / 2, CONE_ANGLE / 2)
-			next_position_last_pose_frame = Vector2(np.sin(angle_picked), np.cos(angle_picked)) * DISTANCE_BETWEEN_POSES
+			angle_picked = pick_angle(weight_density_function, max_weight, -self.cone_angle / 2, self.cone_angle / 2)
+			next_position_last_pose_frame = Vector2(np.sin(angle_picked), np.cos(angle_picked)) * self.distance_between_poses
 			next_position = final_pose.position_relative_to_world(next_position_last_pose_frame)
 			new_arc = make_arc(final_pose, next_position)
 
@@ -209,7 +212,7 @@ class Algorithm2Vehicle(ContinuousVehicle):
 					collision_count = 0
 					print('cleared')
 					continue
-				print(f'vehicle cleared plan too many times)')
+				print(f'vehicle cleared plan too many times')
 				raise VehicleStuckError
 			else:
 				arc_time = new_arc.length / self.speed
@@ -258,7 +261,7 @@ class ContinuousCivilianVehicle(Algorithm2Vehicle):
 	def __init__(self):
 		super().__init__(VehicleType.civilian, CIVILIAN_SPEED)
 		for n in range(NUM_POSES_IN_PLAN):
-			y = (n + 1) * DISTANCE_BETWEEN_POSES
+			y = (n + 1) * self.distance_between_poses
 			self.future_poses.append(FuturePose(
 				Pose(Vector2(0, y), 0),
 				y / CIVILIAN_SPEED
