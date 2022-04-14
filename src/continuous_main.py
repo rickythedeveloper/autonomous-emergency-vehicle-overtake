@@ -4,13 +4,10 @@ from dataclasses import dataclass
 from datetime import datetime
 import os
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 # imports for simulation
 from src.models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
 from .models.continuous.ContinuousSimulator import ContinuousSimulator, VehicleData
-from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle, VehicleStuckError
+from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle, VehicleStuckError, Algorithm1Vehicle
 from .scenarios.continuous.scenario1 import scenario
 
 # imports for visualization
@@ -37,6 +34,7 @@ class SimulationSnapshot:
 	civilians: List[ContinuousCivilianVehicle]
 	emergencies: List[ContinuousEmergencyVehicle]
 
+GOAL_DISTANCE = 100
 def continuous_main():
 	# given scenario, set up the simulator and the vehicles
 	simulator = ContinuousSimulator(
@@ -53,17 +51,34 @@ def continuous_main():
 
 	# obstacle_maps: List[List[List[Tuple[float, float, float]]]] = []
 	iter_done = 0
+	emergency_goal_time: float | None = None
+	civilian_goal_time: float | None = None
 	for i in range(n_iter):
 		print(i)
 		try:
 			simulator.roll_forward(dt)
-		except VehicleStuckError:
-			break
-		except KeyboardInterrupt:
+		except (VehicleStuckError, KeyboardInterrupt):
+			print("\nFAIL")
 			break
 
-		iter_done = i
+		iter_done = i + 1
 		data.append(copy.deepcopy(simulator.vehicles))
+
+		current_time = iter_done * dt
+		civilians_have_reached = True
+		for vehicle_data in simulator.vehicles:
+			if vehicle_data.object.vehicle_type == VehicleType.emergency:
+				if vehicle_data.position.y > GOAL_DISTANCE and emergency_goal_time is None:
+					emergency_goal_time = current_time
+			if vehicle_data.object.vehicle_type == VehicleType.civilian:
+				if vehicle_data.position.y < GOAL_DISTANCE:
+					civilians_have_reached = False
+		if civilians_have_reached and civilian_goal_time is None:
+			civilian_goal_time = current_time
+
+		if civilian_goal_time is not None and emergency_goal_time is not None:
+			print('\nSUCCESS: stopping simulation because all reached goal')
+			break
 
 		# colors: List[List[Tuple[float, float, float]]] = []
 		# obstacle_maps.append(colors)
@@ -78,7 +93,21 @@ def continuous_main():
 		# 		row.append(color)
 		t += dt
 		# print(f'\rt={t}', end='')
-	print('simulation complete iter_done = ', iter_done)
+
+	total_wasted_proposal_count = 0
+	for vehicle_data in simulator.vehicles:
+		vehicle: Algorithm1Vehicle = vehicle_data.object
+		total_wasted_proposal_count += vehicle.wasted_proposal_count
+	ave_closest_distance = sum(simulator.closest_car_to_emergency_distance)/len(simulator.closest_car_to_emergency_distance)
+	print(
+		f'simulation complete with {iter_done} iterations\n'
+		f'E goal: {emergency_goal_time}s\n'
+		f'C goal: {civilian_goal_time}s\n'
+		f'Wasted proposals: {total_wasted_proposal_count}\n'
+		f'min distance average to E: {ave_closest_distance}\n'
+		'visualising...'
+	)
+
 	# visualize
 	save_directory = os.path.join('images', datetime.now().strftime("%Y-%d-%m_%H-%M-%S"))
 	for index, snapshot in enumerate(data):

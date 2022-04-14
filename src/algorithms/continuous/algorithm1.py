@@ -74,14 +74,15 @@ MIN_TURNING_RADIUS = 10
 RUN_MODE = Mode.WITH_ROAD_AND_VEHICLES
 
 # parameters for Gaussian angle picking
-ROAD_HEADING_SIGMA = np.pi / 24
+ROAD_HEADING_SIGMA = np.pi / 6
 EMERGENCY_AVOID_SIGMA = np.pi / 3
 CIVILIAN_AVOID_SIGMA = np.pi / 2
 
-class Algorithm2Vehicle(ContinuousVehicle):
+class Algorithm1Vehicle(ContinuousVehicle):
 	speed: float
 	distance_between_poses: float
 	cone_angle: float
+	wasted_proposal_count: int
 	_width = 2
 	_length = 3
 	collision_test_points_local_frame: List[Vector2] = []
@@ -91,6 +92,7 @@ class Algorithm2Vehicle(ContinuousVehicle):
 		self.speed = speed
 		self.distance_between_poses = speed * 2
 		self.cone_angle = np.arccos(1 - 0.5 * (self.distance_between_poses / MIN_TURNING_RADIUS) ** 2)
+		self.wasted_proposal_count = 0
 		self.collision_test_points_local_frame = test_points_on_box(self._width, self._length, 0.1)
 
 	def contains(self, position: Vector2) -> bool:
@@ -188,6 +190,7 @@ class Algorithm2Vehicle(ContinuousVehicle):
 			new_arc_start_time = 0.0 if len(self.future_poses) == 0 else self.future_poses[-1].time
 			will_collide = self.arc_will_collide(new_arc, new_arc_start_time)
 			if will_collide:
+				self.wasted_proposal_count += 1
 				if collision_count < MAX_COLLISION_COUNT_BEFORE_BACKTRACK:
 					collision_count += 1
 					# print('collision. no backtrack')
@@ -200,12 +203,14 @@ class Algorithm2Vehicle(ContinuousVehicle):
 					print(f'vehicle could not propose a new path with no plan')
 					raise VehicleStuckError
 				if backtrack_count < MAX_BACKTRACK_COUNT_FOR_CLEARING:
+					self.wasted_proposal_count += 1
 					del self.future_poses[-1]
 					backtrack_count += 1
 					collision_count = 0
 					print('backtracked')
 					continue
 				if clear_count < MAX_CLEAR_COUNT:
+					self.wasted_proposal_count += len(self.future_poses)
 					self.future_poses.clear()
 					clear_count += 1
 					backtrack_count = 0
@@ -257,7 +262,7 @@ class Algorithm2Vehicle(ContinuousVehicle):
 		self.control = Control(self.speed, direction, arc.circle.radius)
 
 CIVILIAN_SPEED = 1
-class ContinuousCivilianVehicle(Algorithm2Vehicle):
+class ContinuousCivilianVehicle(Algorithm1Vehicle):
 	def __init__(self):
 		super().__init__(VehicleType.civilian, CIVILIAN_SPEED)
 		for n in range(NUM_POSES_IN_PLAN):
@@ -268,6 +273,6 @@ class ContinuousCivilianVehicle(Algorithm2Vehicle):
 			))
 
 EMERGENCY_SPEED = 2
-class ContinuousEmergencyVehicle(Algorithm2Vehicle):
+class ContinuousEmergencyVehicle(Algorithm1Vehicle):
 	def __init__(self):
 		super().__init__(VehicleType.emergency, EMERGENCY_SPEED)

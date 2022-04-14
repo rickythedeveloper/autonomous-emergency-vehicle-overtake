@@ -1,7 +1,7 @@
 from typing import List, Callable
 from dataclasses import dataclass
 import numpy as np
-from .ContinuousVehicle import ContinuousVehicle, LateralDirection, ObservedVehicle
+from .ContinuousVehicle import ContinuousVehicle, LateralDirection, ObservedVehicle, VehicleType
 from ...algorithms.continuous.utils.heading import clean_heading
 from ...utils.Vector2 import Vector2
 
@@ -33,8 +33,10 @@ class VehicleData:
 class ContinuousSimulator:
 	vehicles: List[VehicleData]
 	position_is_obstacle: Callable[[Vector2], bool]
+	closest_car_to_emergency_distance: List[float]
 
 	def __init__(self, position_is_obstacle: Callable[[Vector2], bool], vehicles: List[VehicleData] = None):
+		self.closest_car_to_emergency_distance = []
 		self.position_is_obstacle = position_is_obstacle
 		self.vehicles = []
 		if vehicles is not None:
@@ -99,3 +101,11 @@ class ContinuousSimulator:
 			vehicle.heading += delta_heading
 
 			vehicle.object.roll_forward(dt)
+
+		for v1 in self.vehicles:
+			if v1.object.vehicle_type == VehicleType.emergency:
+				min_distance = np.Inf
+				for v2 in self.vehicles:
+					if v1 is v2: continue
+					min_distance = min(min_distance, (v2.position - v1.position).length)
+				self.closest_car_to_emergency_distance.append(min_distance)
