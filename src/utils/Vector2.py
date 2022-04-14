@@ -35,7 +35,9 @@ class Vector2:
 
 	def heading_to(self, other: Vector2) -> float:
 		rel: Vector2 = other - self
-		angle = np.arctan(rel.x / rel.y) # between -pi/2 and pi/2
+		assert not (rel.x == 0 and rel.y == 0)
+		if rel.y == 0: angle = np.pi / 2 if rel.x > 0 else np.pi * 3 / 2
+		else: angle = np.arctan(rel.x / rel.y) # between -pi/2 and pi/2
 		if rel.x < 0 and rel.y > 0: angle += 2 * np.pi
 		elif rel.y < 0: angle += np.pi
 		assert 0 <= angle <= 2 * np.pi, f'heading {angle} from {self} to {other} is out of range'
