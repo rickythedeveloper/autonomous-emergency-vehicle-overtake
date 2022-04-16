@@ -163,7 +163,8 @@ class Algorithm1Vehicle(ContinuousVehicle):
 						traffic_factory,
 						[0.0, 0.0],
 						car_heading_factory * 180 / np.pi,
-						angle * 180 / np.pi
+						angle * 180 / np.pi,
+						self.cone_angle * 180 / np.pi
 					)
 				return weight_density
 
