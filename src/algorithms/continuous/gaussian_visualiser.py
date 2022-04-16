@@ -7,7 +7,7 @@ from datetime import datetime
 
 from src.models.continuous.ContinuousVehicle import VehicleType
 from src.utils.Vector2 import Vector2
-from .algorithm1 import weight_density_generator_road_and_vehicle
+from src.algorithms.continuous.gaussian import weight_density_generator_road_and_vehicle
 
 visualisation_angle = np.pi / 6
 STEP = visualisation_angle / 100

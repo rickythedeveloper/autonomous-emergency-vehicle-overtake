@@ -7,7 +7,8 @@ import os
 # imports for simulation
 from src.models.continuous.ContinuousVehicle import ContinuousVehicle, VehicleType
 from .models.continuous.ContinuousSimulator import ContinuousSimulator, VehicleData
-from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle, VehicleStuckError, Algorithm1Vehicle
+from .algorithms.continuous.algorithm1 import ContinuousCivilianVehicle, ContinuousEmergencyVehicle, Algorithm1Vehicle
+from src.algorithms.continuous.errors import VehicleStuckError
 from .scenarios.continuous.scenario1 import scenario
 
 # imports for visualization

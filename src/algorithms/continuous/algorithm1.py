@@ -1,8 +1,12 @@
 from __future__ import annotations
-from typing import List, Callable, Tuple
+from typing import List, Callable
 from enum import Enum
 import numpy as np
-from random import uniform
+
+from .errors import VehicleStuckError
+from .gaussian import weight_density_generator_road_and_vehicle, weight_density_generator_with_road
+from .pick_angle import pick_angle
+from .test_points import test_points_on_box
 from .utils.Arc import Arc, make_arc
 from .utils.Pose import Pose
 from .utils.heading import clean_heading
@@ -10,86 +14,13 @@ from ...models.continuous.ContinuousVehicle import ContinuousVehicle, Control, F
 from ...utils.Vector2 import Vector2
 from .PDFs.NewPDFs import angle_probability_from_pdf
 
-GaussianParameter = Tuple[float, float]
-def compute_overall_gaussian_parameter(parameters: List[GaussianParameter]) -> GaussianParameter:
-	assert len(parameters) > 0
-	sum_mu_over_sigma_squared = 0
-	sum_one_over_sigma_squared = 0
-	for p in parameters:
-		mu_i = clean_heading(p[0], -np.pi) # enforce mu_i to be between -pi and pi
-		sigma_i = p[1]
-		sum_mu_over_sigma_squared += mu_i / (sigma_i ** 2)
-		sum_one_over_sigma_squared += 1 / (sigma_i ** 2)
-	mu = sum_mu_over_sigma_squared / sum_one_over_sigma_squared
-	sigma = np.sqrt(1 / sum_one_over_sigma_squared)
-	return mu, sigma
-
-def gaussian_function_generator(parameter: GaussianParameter, normalisation_constant: float) -> Callable[[float], float]:
-	def gaussian_function(angle: float) -> float:
-		return normalised_angle_gaussian(parameter, angle) * normalisation_constant
-	return gaussian_function
-
-def normalised_angle_gaussian(param: GaussianParameter, x: float):
-	mu, sigma = param
-	x_minus_mu = clean_heading(x - mu, -np.pi) # (x - mu) between -pi and pi
-	return np.exp(-0.5 * (x_minus_mu ** 2) / (sigma ** 2))
-
-def test_points_on_box(width: float, length: float, spacing: float = 0.1) -> List[Vector2]:
-	half_width, half_length = width / 2, length / 2
-	test_points = []
-	# front and back
-	for y in [-half_length, half_length]:
-		for x in np.arange(-half_width, half_length, spacing):
-			test_points.append(Vector2(x, y))
-
-	# both sides
-	for x in [-half_width, half_width]:
-		for y in np.arange(-half_length, half_length, spacing):
-			test_points.append(Vector2(x, y))
-
-	return test_points
-
-def pick_angle(weight_density_function: Callable[[float], float], max_weight: float, min_angle: float, max_angle: float):
-	while True:
-		angle = uniform(min_angle, max_angle)
-		value = uniform(0, max_weight)
-		if value < weight_density_function(angle): return angle
-
-
-def weight_density_generator_road_and_vehicle(traffic_positions: List[Vector2], vehicle_types: List[VehicleType], road_heading: float, cone_angle: float) -> Callable[[float], float]:
-	"""Returns the gaussian function given the traffic, road heading and cone angle"""
-	gaussian_parameters: List[GaussianParameter] = [
-		(road_heading, ROAD_HEADING_SIGMA)  # road heading
-	]
-
-	# avoid other vehicles
-	for traffic_position, vehicle_type in zip(traffic_positions, vehicle_types):
-		mu_opposite = Vector2.zero().heading_to(traffic_position)
-		mu_v = clean_heading(mu_opposite + np.pi, -np.pi)
-
-		sigma_v = traffic_position.length * (EMERGENCY_AVOID_SIGMA if vehicle_type == VehicleType.emergency else CIVILIAN_AVOID_SIGMA)
-		gaussian_parameters.append((mu_v, sigma_v))
-
-	g_param = compute_overall_gaussian_parameter(gaussian_parameters)
-
-	if g_param[0] < -cone_angle / 2 or g_param[0] > cone_angle / 2:
-		left_value = normalised_angle_gaussian(g_param, -cone_angle / 2)
-		right_value = normalised_angle_gaussian(g_param, cone_angle / 2)
-		normalisation_constant = 1 / max(left_value, right_value)
-	else:
-		normalisation_constant = 1
-
-	return gaussian_function_generator(g_param, normalisation_constant)
-
-class VehicleStuckError(Exception):
-	"""Vehicle cannot plan the next path"""
-	pass
-
 class Mode(Enum):
 	SIMPLE_CONE = 0
 	WITH_ROAD_DIRECTION = 1
 	WITH_ROAD_AND_VEHICLES = 2
 	HARSH_PDF = 3
+
+RUN_MODE = Mode.WITH_ROAD_AND_VEHICLES
 
 NUM_POSES_IN_PLAN = 4
 MAX_COLLISION_COUNT_BEFORE_BACKTRACK = 5
@@ -100,12 +31,6 @@ MAX_ARRIVING_ANGLE_DISCREPANCY = np.pi / 10
 ARC_SPLIT_LENGTH = 0.1
 REMOVE_POSE_TIME = 0.6
 MIN_TURNING_RADIUS = 10
-RUN_MODE = Mode.WITH_ROAD_AND_VEHICLES
-
-# parameters for Gaussian angle picking
-ROAD_HEADING_SIGMA = np.pi / 16
-EMERGENCY_AVOID_SIGMA = np.pi / 36
-CIVILIAN_AVOID_SIGMA = np.pi / 24
 
 class Algorithm1Vehicle(ContinuousVehicle):
 	speed: float
@@ -131,7 +56,7 @@ class Algorithm1Vehicle(ContinuousVehicle):
 		if RUN_MODE == Mode.SIMPLE_CONE:
 			return lambda angle: 1
 		elif RUN_MODE == Mode.WITH_ROAD_DIRECTION:
-			return gaussian_function_generator((self.road_heading - heading, ROAD_HEADING_SIGMA), 1)
+			return weight_density_generator_with_road(self.road_heading - heading)
 		elif RUN_MODE == Mode.WITH_ROAD_AND_VEHICLES:
 			traffic_positions: List[Vector2] = []
 			vehicle_types: List[VehicleType] = []
