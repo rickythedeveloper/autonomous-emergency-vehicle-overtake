@@ -8,6 +8,7 @@ from .utils.Pose import Pose
 from .utils.heading import clean_heading
 from ...models.continuous.ContinuousVehicle import ContinuousVehicle, Control, FuturePose, LateralDirection, VehicleType
 from ...utils.Vector2 import Vector2
+from .PDFs.NewPDFs import angle_probability_from_pdf
 
 GaussianParameter = Tuple[float, float]
 def compute_overall_gaussian_parameter(parameters: List[GaussianParameter]) -> GaussianParameter:
@@ -88,6 +89,7 @@ class Mode(Enum):
 	SIMPLE_CONE = 0
 	WITH_ROAD_DIRECTION = 1
 	WITH_ROAD_AND_VEHICLES = 2
+	HARSH_PDF = 3
 
 NUM_POSES_IN_PLAN = 4
 MAX_COLLISION_COUNT_BEFORE_BACKTRACK = 5
@@ -142,6 +144,30 @@ class Algorithm1Vehicle(ContinuousVehicle):
 				traffic_positions.append(v_future_position_from_pos)
 				vehicle_types.append(v.vehicle_type)
 			return weight_density_generator_road_and_vehicle(traffic_positions, vehicle_types, self.road_heading - heading, self.cone_angle)
+		elif RUN_MODE == Mode.HARSH_PDF:
+			goal_heading_relative = self.road_heading - heading
+			car_heading = -goal_heading_relative
+
+			# compute traffic
+			traffic: List[List[float]] = []
+			for v in self.observed_vehicles:
+				pose = v.pose_at_time(time)
+				if pose is None: continue
+				v_future_position = v.relative_position + pose.position.rotated_clockwise(v.relative_heading)
+				v_future_position_from_pos = (v_future_position - position).rotated_clockwise(-heading)
+				traffic.append([v_future_position_from_pos.x, v_future_position_from_pos.y])
+
+			def factory(traffic_factory, car_heading_factory) -> Callable[[float], float]:
+				def weight_density(angle: float) -> float:
+					return angle_probability_from_pdf(
+						traffic_factory,
+						[0.0, 0.0],
+						car_heading_factory * 180 / np.pi,
+						angle * 180 / np.pi
+					)
+				return weight_density
+
+			return factory(traffic, car_heading)
 		else:
 			raise NotImplementedError
 
@@ -280,6 +306,14 @@ class ContinuousCivilianVehicle(Algorithm1Vehicle):
 				Pose(Vector2(0, y), 0),
 				y / CIVILIAN_SPEED
 			))
+
+	# uncomment these two functions to make civilian cars go straight
+	# def roll_forward(self, dt: float):
+	# 	return
+	#
+	# def update_control(self):
+	# 	self.control = Control(self.speed, LateralDirection.left, 1000000)
+	# 	return
 
 EMERGENCY_SPEED = 2
 class ContinuousEmergencyVehicle(Algorithm1Vehicle):
