@@ -119,18 +119,14 @@ class Algorithm1Vehicle(ContinuousVehicle):
 		next_pose = self.future_poses[0].pose
 		current_arc = make_arc(Pose.zero(), next_pose.position)
 
-		if self.arc_will_collide(current_arc, 0):
+		arriving_heading_diff = clean_heading(next_pose.heading - current_arc.end_heading, min_value=-np.pi)
+		heading_discrepancy = np.abs(arriving_heading_diff)
+		if heading_discrepancy > MAX_ARRIVING_ANGLE_DISCREPANCY:
 			self.future_poses.clear()
-			print('deleted plan due to possible collision')
-		else:
-			arriving_heading_diff = clean_heading(next_pose.heading - current_arc.end_heading, min_value=-np.pi)
-			heading_discrepancy = np.abs(arriving_heading_diff)
-			if heading_discrepancy > MAX_ARRIVING_ANGLE_DISCREPANCY:
-				self.future_poses.clear()
-				print("deleted plan due to large discrepancy")
-			elif next_pose.position.length < self.speed * REMOVE_POSE_TIME:
-				del self.future_poses[0]
-				print("reached a pose")
+			print("deleted plan due to large discrepancy")
+		elif next_pose.position.length < self.speed * REMOVE_POSE_TIME:
+			del self.future_poses[0]
+			print("reached a pose")
 
 	def add_poses(self):
 		"""Keeps adding poses until we have NUM_POSES_IN_PLAN many poses in the plan"""
@@ -209,10 +205,6 @@ class Algorithm1Vehicle(ContinuousVehicle):
 		self.future_poses = future_poses
 
 	def update_control(self):
-		if self.position_will_collide(Vector2.zero(), 0, 0):
-			print('vehicle has collided')
-			raise VehicleStuckError
-
 		self.rrt()
 
 		next_pose = self.future_poses[0].pose
