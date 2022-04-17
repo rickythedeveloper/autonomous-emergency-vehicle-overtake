@@ -35,8 +35,8 @@ def normalised_angle_gaussian(param: GaussianParameter, x: float):
 
 # parameters for Gaussian angle picking
 ROAD_HEADING_SIGMA = np.pi / 16
-EMERGENCY_AVOID_SIGMA = np.pi / 36
-CIVILIAN_AVOID_SIGMA = np.pi / 24
+EMERGENCY_AVOID_SIGMA = ROAD_HEADING_SIGMA / 4
+CIVILIAN_AVOID_SIGMA = np.pi / 32
 
 def weight_density_generator_with_road(road_direction: float):
 	return gaussian_function_generator((road_direction, ROAD_HEADING_SIGMA), 1)

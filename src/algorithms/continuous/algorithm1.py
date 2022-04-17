@@ -226,12 +226,12 @@ CIVILIAN_SPEED = 1
 class ContinuousCivilianVehicle(Algorithm1Vehicle):
 	def __init__(self):
 		super().__init__(VehicleType.civilian, CIVILIAN_SPEED)
-		# for n in range(NUM_POSES_IN_PLAN):
-		# 	y = (n + 1) * self.distance_between_poses
-		# 	self.future_poses.append(FuturePose(
-		# 		Pose(Vector2(0, y), 0),
-		# 		y / CIVILIAN_SPEED
-		# 	))
+		for n in range(NUM_POSES_IN_PLAN):
+			y = (n + 1) * self.distance_between_poses
+			self.future_poses.append(FuturePose(
+				Pose(Vector2(0, y), 0),
+				y / CIVILIAN_SPEED
+			))
 
 	# uncomment these two functions to make civilian cars go straight
 	# def roll_forward(self, dt: float):

@@ -45,7 +45,7 @@ def continuous_main():
 	)
 
 	# simulate
-	dt, total_time = 0.5, 50
+	dt, total_time = 0.5, 200
 	n_iter = int(total_time / dt)
 	t = 0
 	data: List[List[VehicleData]] = []
@@ -122,10 +122,10 @@ def continuous_main():
 			lambda x: get_visualization_cell_type(x, snapshot),
 			0.3,
 			Extent(
-				emergency_vehicle_position.x - 15,
-				emergency_vehicle_position.x + 15,
+				emergency_vehicle_position.x - 20,
+				emergency_vehicle_position.x + 20,
 				emergency_vehicle_position.y - 10,
-				emergency_vehicle_position.y + 60
+				emergency_vehicle_position.y + 45
 			),
 			os.path.join(save_directory, 'absolute'),
 			str(index)

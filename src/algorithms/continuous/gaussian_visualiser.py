@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Tuple
 from dataclasses import dataclass
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,6 +28,8 @@ class TestCase:
 	road_heading: float
 	cone_angle: float
 
+Traffic = Tuple[Vector2, VehicleType]
+
 if __name__ == '__main__':
 	# traffic_positions = [Vector2(5, 5), Vector2(0, 10), Vector2(5, 15), Vector2(-5, 5), Vector2(0, 10), Vector2(-5, 15)]
 	# traffic_positions = [Vector2(1, 1), Vector2(-1, 1), Vector2(1, 2)]
@@ -35,12 +37,24 @@ if __name__ == '__main__':
 	# traffic_positions = [Vector2(3, 10), Vector2(0, 10), Vector2(5, 15), Vector2(-2, 10), Vector2(-2, 7)]
 	# traffic_positions = [Vector2(5, 0)]
 	# traffic_positions = [Vector2(-0.1, 5)]
-	traffic_positions = [Vector2(3, 7), Vector2(8, 2)] # this is a nice one
-	traffic_positions = [Vector2(0.1, 5), Vector2(-3, 3)]  # this represents the bad edge case
-	vehicle_types = [VehicleType.civilian for _ in range(len(traffic_positions))]
+	# traffic_positions = [Vector2(3, 7), Vector2(8, 2)] # this is a nice one
+	# traffic_positions = [Vector2(0.1, 5), Vector2(-3, 3)]  # this represents the bad edge case
+	# traffic_positions = [Vector2(-5, 5), Vector2(3, -5)]
+	# vehicle_types = [VehicleType.civilian for _ in range(len(traffic_positions))]
+	# vehicle_types[1] = VehicleType.emergency
 	road_heading = 0
 	cone_angle = np.pi / 6
 
+	traffic: List[Traffic] = [
+		(Vector2(-5, 10), VehicleType.civilian),
+		(Vector2(-2, 7), VehicleType.civilian),
+		(Vector2(3, -5), VehicleType.emergency),
+	]
+
+	traffic_positions = [el[0] for el in traffic]
+	vehicle_types = [el[1] for el in traffic]
+
 	gaussian_function = weight_density_generator_road_and_vehicle(traffic_positions, vehicle_types, road_heading, cone_angle)
-	# gaussian_function_road = weight_density_generator_with_road(road_heading) # use this to show road gaussian on its own
 	visualise_normalised_gaussian(gaussian_function)
+	gaussian_function_road = weight_density_generator_with_road(road_heading) # use this to show road gaussian on its own
+	# visualise_normalised_gaussian(gaussian_function_road)
