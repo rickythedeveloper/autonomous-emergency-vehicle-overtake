@@ -100,17 +100,22 @@ def continuous_main():
 		vehicle: Algorithm1Vehicle = vehicle_data.object
 		total_wasted_proposal_count += vehicle.wasted_proposal_count
 	ave_closest_distance = sum(simulator.closest_car_to_emergency_distance)/len(simulator.closest_car_to_emergency_distance)
-	print(
-		f'simulation complete with {iter_done} iterations\n'
-		f'E goal: {emergency_goal_time}s\n'
-		f'C goal: {civilian_goal_time}s\n'
-		f'Wasted proposals: {total_wasted_proposal_count}\n'
-		f'min distance average to E: {ave_closest_distance}\n'
-		'visualising...'
-	)
+	print_message = \
+		f'simulation complete with {iter_done} iterations\n' +\
+		f'E goal: {emergency_goal_time}s\n' +\
+		f'C goal: {civilian_goal_time}s\n' +\
+		f'Wasted proposals: {total_wasted_proposal_count}\n' +\
+		f'min distance average to E: {ave_closest_distance}'
+	print(print_message)
+	print('visualising...')
 
 	# visualize
-	save_directory = os.path.join('images', datetime.now().strftime("%Y-%d-%m_%H-%M-%S"))
+	iteration_name = 'r=10000,e=pi/32,c=10000'
+	save_directory = os.path.join('images', iteration_name, datetime.now().strftime("%Y-%d-%m_%H-%M-%S"))
+	os.makedirs(save_directory, exist_ok=True)
+	with open(os.path.join(save_directory, 'info.txt'), 'w') as f:
+		f.write(print_message)
+
 	for index, snapshot in enumerate(data):
 		emergency_vehicle_position: Vector2 | None = None
 		for vehicle_data in snapshot:
