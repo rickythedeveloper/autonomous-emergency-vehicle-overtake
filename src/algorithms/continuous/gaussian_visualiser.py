@@ -16,7 +16,7 @@ def visualise_normalised_gaussian(function: Callable[[float], float]):
 	y = [function(t) for t in theta]
 
 	plt.title("Relative likelihood of picking a given angle")
-	plt.xlabel("angle")
+	plt.xlabel("angle (deg)")
 	plt.ylabel("acceptance probability")
 	plt.plot(theta * 180 / np.pi, y, color="green")
 	plt.show()
