@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import List
 from enum import Enum
 from dataclasses import dataclass
 

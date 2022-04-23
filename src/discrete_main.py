@@ -31,7 +31,7 @@ def get_visualization_cell_type(position: Vector2, grid: Grid) -> VisualisationC
 def discrete_main():
 	# given scenario, set up the simulator and the vehicles
 	civilians = [DiscreteCivilianVehicle(pos) for pos in scenario.civilian_positions]
-	emergencies = [DiscreteEmergencyVehicle(pos) for pos in scenario.emergencie_positions]
+	emergencies = [DiscreteEmergencyVehicle(pos) for pos in scenario.emergency_positions]
 	simulator = DiscreteSimulator(scenario.grid, [*civilians, *emergencies])
 
 	# simulate
